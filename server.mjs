@@ -10,7 +10,8 @@ const __dirname = path.dirname(__filename)
 
 const DIST_DIR = path.join(__dirname, 'dist')
 const TODOS_PATH = process.env.TASKGARDEN_TODOS_PATH || '/root/.openclaw/workspace/state/todos.json'
-const SESSIONS_PATH = '/root/.openclaw/agents/main/sessions/sessions.json'
+const SESSIONS_PATH = process.env.SESSIONS_PATH || '/root/.openclaw/agents/main/sessions/sessions.json'
+const GATEWAY_BASE_URL = process.env.GATEWAY_BASE_URL || 'http://127.0.0.1:18789'
 
 const host = process.env.HOST || '127.0.0.1'
 const port = Number(process.env.PORT || 4176)
@@ -46,7 +47,7 @@ async function gatewayReachable() {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 3000)
   try {
-    const response = await fetch('http://127.0.0.1:18789/', {
+    const response = await fetch(`${GATEWAY_BASE_URL}/`, {
       signal: controller.signal,
     })
     return response.ok
@@ -70,6 +71,9 @@ async function loadTodos() {
 }
 
 async function loadSessions() {
+  if (!existsSync(SESSIONS_PATH)) {
+    return []
+  }
   const raw = await readFile(SESSIONS_PATH, 'utf8')
   const parsed = JSON.parse(raw)
   return Object.entries(parsed).map(([key, value]) => ({ key, ...value }))
@@ -104,7 +108,11 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
     if (url.pathname === '/api/healthz') {
-      sendJson(res, 200, { ok: true })
+      sendJson(res, 200, {
+        ok: true,
+        service: 'clawpoint',
+        taskgarden: existsSync(TODOS_PATH),
+      })
       return
     }
     if (url.pathname === '/api/dashboard') {

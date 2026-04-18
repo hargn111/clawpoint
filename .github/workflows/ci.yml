@@ -1,13 +1,10 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - 'feat/**'
-      - 'fix/**'
-      - 'chore/**'
   pull_request:
+  push:
+    branches-ignore:
+      - main
 
 jobs:
   test:
@@ -33,3 +30,18 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Docker build
+        run: docker build -t clawpoint:test .
+
+      - name: Container smoke test
+        run: |
+          docker run -d --rm --name clawpoint-smoke -p 4176:4176 clawpoint:test
+          trap 'docker logs clawpoint-smoke || true; docker stop clawpoint-smoke || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4176/api/healthz >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          npm run smoke

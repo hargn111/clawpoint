@@ -1,0 +1,19 @@
+services:
+  clawpoint:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/hargn111/clawpoint:latest
+    restart: unless-stopped
+    ports:
+      - "4176:4176"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4176
+      GATEWAY_BASE_URL: ${GATEWAY_BASE_URL:-http://host.docker.internal:18789}
+      TASKGARDEN_TODOS_PATH: ${TASKGARDEN_TODOS_PATH:-/data/todos.json}
+      SESSIONS_PATH: ${SESSIONS_PATH:-/data/sessions.json}
+    volumes:
+      - ${TASKGARDEN_TODOS_HOST_PATH:-./ops/example-data/todos.json}:/data/todos.json:ro
+      - ${SESSIONS_HOST_PATH:-./ops/example-data/sessions.json}:/data/sessions.json:ro
