@@ -102,27 +102,31 @@ The exact shape may change, but the interface should support fast switching betw
 - inline status explanations
 - more useful cross-panel linking between sessions, reminders, and todos
 
+## Current capabilities
+
+Today, Clawpoint already has:
+
+- a live overview screen
+- live session visibility
+- live health visibility
+- Task Garden-backed reminder visibility when Task Garden is available
+- clean omission of task-backed reminder UI when Task Garden is unavailable
+
 ## Roadmap
 
-### Phase 1, live visibility
-
-- establish a stable overview screen
-- wire real session, reminder, and health data
-- make the read-only dashboard genuinely useful
-
-### Phase 2, structured navigation
+### Phase 1, structured navigation
 
 - introduce a tabbed interface
 - separate overview from focused management screens
 - improve information architecture for longer daily use
 
-### Phase 3, task and session operations
+### Phase 2, task and session operations
 
 - add session management affordances
 - add todo management when Task Garden is available
 - make operational actions feel deliberate and safe
 
-### Phase 4, polish and product maturity
+### Phase 3, polish and product maturity
 
 - improve interaction quality throughout the UI
 - refine branding and visual system
@@ -139,7 +143,7 @@ The only integration assumption worth documenting here is Task Garden for todo f
 - strengthen the information architecture
 - add a real tabbed interface
 - deepen session management views
-- make todo management optional and seamless behind Task Garden detection
+- begin actual todo management flows on top of optional Task Garden detection
 - improve overall UI quality until the interface feels intentional rather than merely functional
 
 ## Status
