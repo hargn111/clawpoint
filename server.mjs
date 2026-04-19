@@ -100,7 +100,13 @@ async function serveStatic(req, res) {
   }
 
   const target = existsSync(normalized) ? normalized : path.join(DIST_DIR, 'index.html')
-  res.writeHead(200, { 'Content-Type': contentTypeFor(target) })
+  const headers = {
+    'Content-Type': contentTypeFor(target),
+    'Cache-Control': target.endsWith('.html')
+      ? 'no-store, max-age=0, must-revalidate'
+      : 'public, max-age=31536000, immutable',
+  }
+  res.writeHead(200, headers)
   createReadStream(target).pipe(res)
 }
 
