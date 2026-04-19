@@ -19,10 +19,12 @@ PREVIOUS_TARGET=""
 
 run() {
   if [[ "$DRY_RUN" == "1" ]]; then
-    printf '[dry-run] %s\n' "$*"
+    printf '[dry-run]'
+    printf ' %q' "$@"
+    printf '\n'
     return 0
   fi
-  eval "$@"
+  "$@"
 }
 
 healthcheck() {
@@ -46,16 +48,16 @@ if [[ -L "$CURRENT_LINK" ]]; then
   PREVIOUS_TARGET="$(readlink -f "$CURRENT_LINK")"
 fi
 
-run "mkdir -p '$TARGET_DIR'"
-run "cp -R '$BUNDLE_DIR'/.' '$TARGET_DIR'/"
-run "cd '$TARGET_DIR' && npm ci --omit=dev"
+run mkdir -p "$TARGET_DIR"
+run cp -R "$BUNDLE_DIR"/. "$TARGET_DIR"/
+run bash -lc "cd \"$TARGET_DIR\" && npm ci --omit=dev"
 
 if systemctl --user list-unit-files "$SERVICE_NAME" >/dev/null 2>&1; then
-  run "systemctl --user stop $SERVICE_NAME || true"
+  systemctl --user stop "$SERVICE_NAME" || true
 fi
 
-run "ln -sfn '$TARGET_DIR' '$CURRENT_LINK'"
-run "systemctl --user start $SERVICE_NAME"
+run ln -sfn "$TARGET_DIR" "$CURRENT_LINK"
+run systemctl --user start "$SERVICE_NAME"
 
 if [[ "$DRY_RUN" == "1" ]]; then
   printf 'release-deployed:%s\n' "$TARGET_DIR"
