@@ -105,6 +105,80 @@ input {
   margin-top: 24px;
 }
 
+.workspace-tabs {
+  margin-top: 24px;
+  display: grid;
+  gap: 20px;
+}
+
+.workspace-tab-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.workspace-tab {
+  text-align: left;
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: rgba(11, 20, 36, 0.55);
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.workspace-tab:hover {
+  border-color: rgba(125, 211, 252, 0.32);
+  background: rgba(15, 23, 42, 0.82);
+  transform: translateY(-1px);
+}
+
+.workspace-tab-active {
+  border-color: rgba(125, 211, 252, 0.4);
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.workspace-tab-label {
+  display: block;
+  font-weight: 700;
+}
+
+.workspace-tab-description {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.workspace-panel {
+  backdrop-filter: blur(20px);
+  background: rgba(11, 20, 36, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  border-radius: 28px;
+  padding: 24px;
+}
+
+.workspace-panel-copy {
+  margin-top: 8px;
+}
+
+.workspace-panel-content {
+  margin-top: 20px;
+}
+
+.workspace-stack {
+  display: grid;
+  gap: 20px;
+}
+
+.workspace-panel-content .panel-card,
+.workspace-panel-content .panel-card-wide {
+  grid-column: auto;
+}
+
 .panel-card {
   grid-column: span 4;
   border-radius: 24px;
@@ -246,5 +320,9 @@ input {
   .list-row {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .workspace-tab-list {
+    grid-template-columns: 1fr;
   }
 }
