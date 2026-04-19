@@ -1,9 +1,11 @@
 .env
 .env.*
+!.env.production.example
 node_modules/
 dist/
 build/
 coverage/
+.release/
 __pycache__/
 *.pyc
 *.tsbuildinfo

@@ -1,13 +1,15 @@
-name: CI
+name: CD
 
 on:
-  pull_request:
   push:
-    branches-ignore:
+    branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
-  test:
+  deploy-artifact:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,16 +24,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Test
+        run: npm test
+
       - name: Type check
         run: npm run check
 
-      - name: Run tests
-        run: npm test
-
-      - name: Build
+      - name: Build app
         run: npm run build
 
-      - name: Start production-style server
+      - name: Deployment smoke test
         run: |
           HOST=127.0.0.1 \
           PORT=4176 \
@@ -39,9 +41,6 @@ jobs:
           SESSIONS_PATH=./ops/example-data/sessions.json \
           node server.mjs &
           echo $! > clawpoint.pid
-
-      - name: Production smoke test
-        run: |
           trap 'kill $(cat clawpoint.pid) || true' EXIT
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4176/api/healthz >/dev/null; then
@@ -54,8 +53,8 @@ jobs:
       - name: Prepare release bundle
         run: npm run release:prepare
 
-      - name: Upload release bundle
+      - name: Upload production bundle
         uses: actions/upload-artifact@v4
         with:
-          name: clawpoint-release-bundle
+          name: clawpoint-production-bundle-${{ github.sha }}
           path: .release/clawpoint
