@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  deploy-artifact:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -58,3 +58,49 @@ jobs:
         with:
           name: clawpoint-production-bundle-${{ github.sha }}
           path: .release/clawpoint
+
+      - name: Start ssh-agent
+        if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_SSH_KEY != '' }}
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add deploy host to known_hosts
+        if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_SSH_KEY != '' && secrets.DEPLOY_PORT != '' }}
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "$CLAWPOINT_DEPLOY_PORT" -H "$CLAWPOINT_DEPLOY_HOST" >> ~/.ssh/known_hosts
+        env:
+          CLAWPOINT_DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          CLAWPOINT_DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+
+      - name: Ship release bundle to host
+        if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_SSH_KEY != '' && secrets.DEPLOY_PORT != '' }}
+        run: |
+          tar -C .release -czf clawpoint-release.tgz clawpoint
+          ssh -p "$CLAWPOINT_DEPLOY_PORT" "$CLAWPOINT_DEPLOY_USER@$CLAWPOINT_DEPLOY_HOST" "mkdir -p ~/clawpoint-deploy"
+          scp -P "$CLAWPOINT_DEPLOY_PORT" clawpoint-release.tgz "$CLAWPOINT_DEPLOY_USER@$CLAWPOINT_DEPLOY_HOST:~/clawpoint-deploy/clawpoint-${GITHUB_SHA}.tgz"
+        env:
+          CLAWPOINT_DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          CLAWPOINT_DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          CLAWPOINT_DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+
+      - name: Deploy on host
+        if: ${{ secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_SSH_KEY != '' && secrets.DEPLOY_PORT != '' }}
+        run: |
+          RELEASE_SHA="$GITHUB_SHA"
+          ssh -p "$CLAWPOINT_DEPLOY_PORT" "$CLAWPOINT_DEPLOY_USER@$CLAWPOINT_DEPLOY_HOST" "set -euo pipefail
+          RELEASE_ROOT=\$HOME/clawpoint-deploy/releases/$RELEASE_SHA
+          mkdir -p \"\$RELEASE_ROOT\"
+          tar -xzf \"\$HOME/clawpoint-deploy/clawpoint-$RELEASE_SHA.tgz\" -C \"\$RELEASE_ROOT\"
+          cd \"\$RELEASE_ROOT/clawpoint\"
+          bash ops/deploy/install-service.sh
+          bash ops/deploy/deploy-release.sh \"\$RELEASE_ROOT/clawpoint\""
+        env:
+          CLAWPOINT_DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          CLAWPOINT_DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          CLAWPOINT_DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+
+      - name: Skip host deploy when secrets are not configured
+        if: ${{ !(secrets.DEPLOY_HOST != '' && secrets.DEPLOY_USER != '' && secrets.DEPLOY_SSH_KEY != '' && secrets.DEPLOY_PORT != '') }}
+        run: echo "Host deploy skipped because deployment secrets are not configured."

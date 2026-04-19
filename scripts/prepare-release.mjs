@@ -26,6 +26,8 @@ await writeFile(
     'Run with a plain Node environment.',
     'Required runtime files are included in this bundle.',
     'Use .env.production.example as the starting environment template.',
+    'Install the user service with ops/deploy/install-service.sh.',
+    'Deploy a bundle with ops/deploy/deploy-release.sh <bundle-dir>.',
     '',
     'Typical start command:',
     'node server.mjs',

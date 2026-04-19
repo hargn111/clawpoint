@@ -5,11 +5,11 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/opt/clawpoint
-EnvironmentFile=/opt/clawpoint/.env.production
-ExecStart=/usr/bin/node /opt/clawpoint/server.mjs
+WorkingDirectory=%h/.local/share/clawpoint/current
+EnvironmentFile=%h/.config/clawpoint/.env.production
+ExecStart=/usr/bin/env node %h/.local/share/clawpoint/current/server.mjs
 Restart=on-failure
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
