@@ -1,9 +1,0 @@
-node_modules
-dist
-coverage
-.git
-.github
-PROJECT.md
-OPERATIONS.md
-INTERNAL*.md
-npm-debug.log*

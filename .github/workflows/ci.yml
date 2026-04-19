@@ -31,13 +31,18 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Docker build
-        run: docker build -t clawpoint:test .
-
-      - name: Container smoke test
+      - name: Start production-style server
         run: |
-          docker run -d --rm --name clawpoint-smoke -p 4176:4176 clawpoint:test
-          trap 'docker logs clawpoint-smoke || true; docker stop clawpoint-smoke || true' EXIT
+          HOST=127.0.0.1 \
+          PORT=4176 \
+          TASKGARDEN_TODOS_PATH=./ops/example-data/todos.json \
+          SESSIONS_PATH=./ops/example-data/sessions.json \
+          node server.mjs &
+          echo $! > clawpoint.pid
+
+      - name: Production smoke test
+        run: |
+          trap 'kill $(cat clawpoint.pid) || true' EXIT
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4176/api/healthz >/dev/null; then
               break
@@ -45,3 +50,12 @@ jobs:
             sleep 1
           done
           npm run smoke
+
+      - name: Prepare release bundle
+        run: npm run release:prepare
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: clawpoint-release-bundle
+          path: .release/clawpoint

@@ -10,7 +10,8 @@
     "check": "tsc --noEmit",
     "serve": "node server.mjs",
     "test": "node --test test/*.test.mjs",
-    "smoke": "node scripts/smoke-test.mjs"
+    "smoke": "node scripts/smoke-test.mjs",
+    "release:prepare": "node scripts/prepare-release.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.59.0",

@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   deploy-artifact:
@@ -34,13 +33,15 @@ jobs:
       - name: Build app
         run: npm run build
 
-      - name: Build production image
-        run: docker build -t ghcr.io/${{ github.repository }}:${{ github.sha }} -t ghcr.io/${{ github.repository }}:latest .
-
       - name: Deployment smoke test
         run: |
-          docker run -d --rm --name clawpoint-prod -p 4176:4176 ghcr.io/${{ github.repository }}:${{ github.sha }}
-          trap 'docker logs clawpoint-prod || true; docker stop clawpoint-prod || true' EXIT
+          HOST=127.0.0.1 \
+          PORT=4176 \
+          TASKGARDEN_TODOS_PATH=./ops/example-data/todos.json \
+          SESSIONS_PATH=./ops/example-data/sessions.json \
+          node server.mjs &
+          echo $! > clawpoint.pid
+          trap 'kill $(cat clawpoint.pid) || true' EXIT
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4176/api/healthz >/dev/null; then
               break
@@ -49,14 +50,11 @@ jobs:
           done
           npm run smoke
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare release bundle
+        run: npm run release:prepare
 
-      - name: Push production image
-        run: |
-          docker push ghcr.io/${{ github.repository }}:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository }}:latest
+      - name: Upload production bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: clawpoint-production-bundle-${{ github.sha }}
+          path: .release/clawpoint
