@@ -70,21 +70,13 @@ jobs:
         with:
           ssh-private-key: ${{ env.DEPLOY_SSH_KEY }}
 
-      - name: Add deploy host to known_hosts
-        if: ${{ env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_SSH_KEY != '' && env.DEPLOY_PORT != '' }}
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -p "$CLAWPOINT_DEPLOY_PORT" -H "$CLAWPOINT_DEPLOY_HOST" >> ~/.ssh/known_hosts
-        env:
-          CLAWPOINT_DEPLOY_HOST: ${{ env.DEPLOY_HOST }}
-          CLAWPOINT_DEPLOY_PORT: ${{ env.DEPLOY_PORT }}
-
       - name: Ship release bundle to host
         if: ${{ env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_SSH_KEY != '' && env.DEPLOY_PORT != '' }}
         run: |
+          SSH_OPTS='-o StrictHostKeyChecking=accept-new'
           tar -C .release -czf clawpoint-release.tgz clawpoint
-          ssh -p "$CLAWPOINT_DEPLOY_PORT" "$CLAWPOINT_DEPLOY_USER@$CLAWPOINT_DEPLOY_HOST" "mkdir -p ~/clawpoint-deploy"
-          scp -P "$CLAWPOINT_DEPLOY_PORT" clawpoint-release.tgz "$CLAWPOINT_DEPLOY_USER@$CLAWPOINT_DEPLOY_HOST:~/clawpoint-deploy/clawpoint-${GITHUB_SHA}.tgz"
+          ssh $SSH_OPTS -p "$CLAWPOINT_DEPLOY_PORT" "$CLAWPOINT_DEPLOY_USER@$CLAWPOINT_DEPLOY_HOST" "mkdir -p ~/clawpoint-deploy"
+          scp $SSH_OPTS -P "$CLAWPOINT_DEPLOY_PORT" clawpoint-release.tgz "$CLAWPOINT_DEPLOY_USER@$CLAWPOINT_DEPLOY_HOST:~/clawpoint-deploy/clawpoint-${GITHUB_SHA}.tgz"
         env:
           CLAWPOINT_DEPLOY_HOST: ${{ env.DEPLOY_HOST }}
           CLAWPOINT_DEPLOY_USER: ${{ env.DEPLOY_USER }}
@@ -93,8 +85,9 @@ jobs:
       - name: Deploy on host
         if: ${{ env.DEPLOY_HOST != '' && env.DEPLOY_USER != '' && env.DEPLOY_SSH_KEY != '' && env.DEPLOY_PORT != '' }}
         run: |
+          SSH_OPTS='-o StrictHostKeyChecking=accept-new'
           RELEASE_SHA="$GITHUB_SHA"
-          ssh -p "$CLAWPOINT_DEPLOY_PORT" "$CLAWPOINT_DEPLOY_USER@$CLAWPOINT_DEPLOY_HOST" "set -euo pipefail
+          ssh $SSH_OPTS -p "$CLAWPOINT_DEPLOY_PORT" "$CLAWPOINT_DEPLOY_USER@$CLAWPOINT_DEPLOY_HOST" "set -euo pipefail
           RELEASE_ROOT=\$HOME/clawpoint-deploy/releases/$RELEASE_SHA
           mkdir -p \"\$RELEASE_ROOT\"
           tar -xzf \"\$HOME/clawpoint-deploy/clawpoint-$RELEASE_SHA.tgz\" -C \"\$RELEASE_ROOT\"
