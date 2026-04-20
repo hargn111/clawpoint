@@ -19,7 +19,7 @@ export function App() {
         title: 'One-screen snapshot',
         description: 'Fast scan across service health and recent sessions.',
         content: (
-          <div className="dashboard-grid dashboard-grid-compact">
+          <div className="overview-grid">
             <GatewayHealthCard />
             <SessionOverviewCard />
           </div>
@@ -74,10 +74,9 @@ export function App() {
       <div className="hero-card hero-card-compact">
         <div>
           <p className="eyebrow">Clawpoint</p>
-          <h1>One screen for the work that matters.</h1>
+          <h1>Focused control, less clutter.</h1>
           <p className="hero-copy">
-            A focused dashboard for session control, quick health checks, and optional task visibility
-            without forking the main OpenClaw interface.
+            Session control, health checks, and task visibility in one local dashboard.
           </p>
         </div>
         <div className="hero-meta hero-meta-compact">
