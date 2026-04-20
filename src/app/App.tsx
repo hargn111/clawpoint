@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useDashboardSnapshot } from '../api/dashboard'
 import { DashboardShell } from '../components/layout/DashboardShell'
-import { ComingSoonPanel } from '../components/navigation/ComingSoonPanel'
 import { WorkspaceTabs, type WorkspaceTab } from '../components/navigation/WorkspaceTabs'
 import { GatewayHealthCard } from '../features/health/components/GatewayHealthCard'
 import { ReminderQueueCard } from '../features/reminders/components/ReminderQueueCard'
@@ -9,40 +8,22 @@ import { SessionOverviewCard } from '../features/sessions/components/SessionOver
 
 export function App() {
   const { data } = useDashboardSnapshot()
-  const taskgardenAvailable = data?.integrations.taskgarden.available ?? true
+  const taskgardenAvailable = data?.integrations.taskgarden.available ?? false
 
   const tabs = useMemo<WorkspaceTab[]>(() => {
-    const todoContent = taskgardenAvailable ? (
-      <div className="workspace-stack">
-        <ReminderQueueCard />
-      </div>
-    ) : (
-      <ComingSoonPanel
-        title="Taskgarden is not connected yet"
-        body="The tab shell is ready. Once the todo integration is available, this view can expand without changing the navigation model."
-      />
-    )
-
-    return [
+    const orderedTabs: WorkspaceTab[] = [
       {
-        id: 'sessions',
-        label: 'Sessions',
-        eyebrow: 'Sessions',
-        title: 'Who is doing what',
-        description: 'Owner-centric view of active, waiting, and idle sessions.',
+        id: 'overview',
+        label: 'Overview',
+        eyebrow: 'Overview',
+        title: 'One-screen snapshot',
+        description: 'Fast scan across service health and recent sessions.',
         content: (
-          <div className="workspace-stack">
+          <div className="dashboard-grid dashboard-grid-compact">
+            <GatewayHealthCard />
             <SessionOverviewCard />
           </div>
         ),
-      },
-      {
-        id: 'todos',
-        label: 'Todos',
-        eyebrow: 'Todos',
-        title: 'What needs attention next',
-        description: 'Reminder-backed work, ready to grow into richer task views.',
-        content: todoContent,
       },
       {
         id: 'health',
@@ -57,25 +38,40 @@ export function App() {
         ),
       },
       {
-        id: 'overview',
-        label: 'Overview',
-        eyebrow: 'Overview',
-        title: 'One-screen snapshot',
-        description: 'Combined view for fast scanning across sessions, todos, and health.',
+        id: 'sessions',
+        label: 'Sessions',
+        eyebrow: 'Sessions',
+        title: 'Who is doing what',
+        description: 'Owner-centric view of active, waiting, and idle sessions.',
         content: (
-          <div className="dashboard-grid">
-            <GatewayHealthCard />
-            {taskgardenAvailable ? <ReminderQueueCard /> : null}
+          <div className="workspace-stack">
             <SessionOverviewCard />
           </div>
         ),
       },
     ]
+
+    if (taskgardenAvailable) {
+      orderedTabs.push({
+        id: 'todos',
+        label: 'Todos',
+        eyebrow: 'Todos',
+        title: 'What needs attention next',
+        description: 'Reminder-backed work, ready to grow into richer task views.',
+        content: (
+          <div className="workspace-stack">
+            <ReminderQueueCard />
+          </div>
+        ),
+      })
+    }
+
+    return orderedTabs
   }, [taskgardenAvailable])
 
   return (
     <DashboardShell>
-      <div className="hero-card">
+      <div className="hero-card hero-card-compact">
         <div>
           <p className="eyebrow">Clawpoint</p>
           <h1>One screen for the work that matters.</h1>
@@ -84,7 +80,7 @@ export function App() {
             without forking the main OpenClaw interface.
           </p>
         </div>
-        <div className="hero-meta">
+        <div className="hero-meta hero-meta-compact">
           <div>
             <span className="hero-meta-label">Mode</span>
             <strong>Live local snapshot</strong>
@@ -96,7 +92,7 @@ export function App() {
         </div>
       </div>
 
-      <WorkspaceTabs tabs={tabs} defaultTabId="sessions" />
+      <WorkspaceTabs tabs={tabs} defaultTabId="overview" />
     </DashboardShell>
   )
 }

@@ -139,6 +139,14 @@ export function buildSessionsOverview(sessions, now = new Date()) {
   }
 }
 
+export function normalizeSessionsFromGateway(payload) {
+  if (!payload || !Array.isArray(payload.sessions)) return []
+  return payload.sessions.map((session) => ({
+    ...session,
+    key: session.key || session.sessionKey || session.id || session.sessionId,
+  }))
+}
+
 export function createDashboardSnapshot({ sessions, todosAvailable, todos, reachable, now = new Date() }) {
   return {
     updatedAt: now.toISOString(),
