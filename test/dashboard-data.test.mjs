@@ -6,6 +6,7 @@ import {
   buildReminderQueue,
   buildSessionsOverview,
   formatDueLabel,
+  normalizeSessionsFromGateway,
 } from '../server/dashboard-data.mjs'
 
 test('formatDueLabel handles overdue and future times', () => {
@@ -78,4 +79,42 @@ test('createDashboardSnapshot disables taskgarden-backed reminders when unavaila
 
   assert.equal(snapshot.integrations.taskgarden.available, false)
   assert.deepEqual(snapshot.reminderQueue.data, [])
+})
+
+test('createDashboardSnapshot still builds sessions when todos are unavailable', () => {
+  const now = new Date('2026-04-18T18:00:00Z')
+  const snapshot = createDashboardSnapshot({
+    sessions: [
+      {
+        key: 'agent:main:main',
+        sessionId: 'main',
+        updatedAt: new Date('2026-04-18T17:55:00Z').getTime(),
+        lastChannel: 'webchat',
+        chatType: 'direct',
+      },
+    ],
+    todosAvailable: false,
+    todos: [],
+    reachable: true,
+    now,
+  })
+
+  assert.equal(snapshot.integrations.taskgarden.available, false)
+  assert.equal(snapshot.sessionsOverview.data[0].id, 'main')
+})
+
+test('normalizeSessionsFromGateway preserves gateway session entries', () => {
+  const sessions = normalizeSessionsFromGateway({
+    sessions: [
+      {
+        sessionKey: 'agent:main:main',
+        sessionId: 'abc',
+        updatedAt: 123,
+      },
+    ],
+  })
+
+  assert.equal(sessions.length, 1)
+  assert.equal(sessions[0].key, 'agent:main:main')
+  assert.equal(sessions[0].sessionId, 'abc')
 })

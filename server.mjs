@@ -1,20 +1,24 @@
 import http from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { createReadStream, existsSync } from 'node:fs'
+import { execFile as execFileCallback } from 'node:child_process'
+import { promisify } from 'node:util'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createDashboardSnapshot } from './server/dashboard-data.mjs'
+import { createDashboardSnapshot, normalizeSessionsFromGateway } from './server/dashboard-data.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const DIST_DIR = path.join(__dirname, 'dist')
-const TODOS_PATH = process.env.TASKGARDEN_TODOS_PATH || '/root/.openclaw/workspace/state/todos.json'
+const TODOS_PATH = process.env.TASKGARDEN_TODOS_PATH || '/home/claw/.local/share/clawpoint/shared/todos.json'
 const SESSIONS_PATH = process.env.SESSIONS_PATH || '/root/.openclaw/agents/main/sessions/sessions.json'
 const GATEWAY_BASE_URL = process.env.GATEWAY_BASE_URL || 'http://127.0.0.1:18789'
+const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || ''
 
 const host = process.env.HOST || '127.0.0.1'
 const port = Number(process.env.PORT || 4176)
+const execFile = promisify(execFileCallback)
 
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload)
@@ -62,18 +66,37 @@ async function loadTodos() {
   if (!existsSync(TODOS_PATH)) {
     return { available: false, items: [] }
   }
-  const raw = await readFile(TODOS_PATH, 'utf8')
-  const parsed = JSON.parse(raw)
-  return {
-    available: true,
-    items: Array.isArray(parsed.items) ? parsed.items : [],
+  try {
+    const raw = await readFile(TODOS_PATH, 'utf8')
+    const parsed = JSON.parse(raw)
+    return {
+      available: true,
+      items: Array.isArray(parsed.items) ? parsed.items : [],
+    }
+  } catch {
+    return { available: false, items: [] }
   }
 }
 
 async function loadSessions() {
+  if (GATEWAY_TOKEN) {
+    const { stdout } = await execFile(
+      'openclaw',
+      ['gateway', 'call', 'sessions.list', '--json', '--token', GATEWAY_TOKEN, '--params', '{}'],
+      {
+        env: process.env,
+        timeout: 10000,
+        maxBuffer: 1024 * 1024 * 4,
+      },
+    )
+    const parsed = JSON.parse(stdout)
+    return normalizeSessionsFromGateway(parsed)
+  }
+
   if (!existsSync(SESSIONS_PATH)) {
     return []
   }
+
   const raw = await readFile(SESSIONS_PATH, 'utf8')
   const parsed = JSON.parse(raw)
   return Object.entries(parsed).map(([key, value]) => ({ key, ...value }))
