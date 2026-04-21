@@ -5,7 +5,13 @@ import { execFile as execFileCallback } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createDashboardSnapshot, normalizeSessionsFromGateway } from './server/dashboard-data.mjs'
+import {
+  buildGatewayHealth,
+  buildReminderQueue,
+  buildSessionsOverview,
+  createDashboardSnapshot,
+  normalizeSessionsFromGateway,
+} from './server/dashboard-data.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -102,6 +108,17 @@ async function loadSessions() {
   return Object.entries(parsed).map(([key, value]) => ({ key, ...value }))
 }
 
+function dashboardMeta(todosAvailable, now = new Date()) {
+  return {
+    updatedAt: now.toISOString(),
+    integrations: {
+      taskgarden: {
+        available: todosAvailable,
+      },
+    },
+  }
+}
+
 async function buildDashboardSnapshot() {
   const [sessions, todosState, reachable] = await Promise.all([loadSessions(), loadTodos(), gatewayReachable()])
   return createDashboardSnapshot({
@@ -110,6 +127,26 @@ async function buildDashboardSnapshot() {
     todos: todosState.items,
     reachable,
   })
+}
+
+async function buildMetaPayload() {
+  const todosState = await loadTodos()
+  return dashboardMeta(todosState.available)
+}
+
+async function buildReminderPayload() {
+  const todosState = await loadTodos()
+  return buildReminderQueue(todosState.available ? todosState.items : [])
+}
+
+async function buildGatewayHealthPayload() {
+  const [sessions, reachable] = await Promise.all([loadSessions(), gatewayReachable()])
+  return buildGatewayHealth(sessions, reachable)
+}
+
+async function buildSessionsPayload() {
+  const sessions = await loadSessions()
+  return buildSessionsOverview(sessions)
 }
 
 async function serveStatic(req, res) {
@@ -146,6 +183,26 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname === '/api/dashboard') {
       const payload = await buildDashboardSnapshot()
+      sendJson(res, 200, payload)
+      return
+    }
+    if (url.pathname === '/api/dashboard/meta') {
+      const payload = await buildMetaPayload()
+      sendJson(res, 200, payload)
+      return
+    }
+    if (url.pathname === '/api/dashboard/reminders') {
+      const payload = await buildReminderPayload()
+      sendJson(res, 200, payload)
+      return
+    }
+    if (url.pathname === '/api/dashboard/gateway-health') {
+      const payload = await buildGatewayHealthPayload()
+      sendJson(res, 200, payload)
+      return
+    }
+    if (url.pathname === '/api/dashboard/sessions') {
+      const payload = await buildSessionsPayload()
       sendJson(res, 200, payload)
       return
     }

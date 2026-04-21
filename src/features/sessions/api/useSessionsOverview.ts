@@ -1,10 +1,5 @@
-import { useDashboardSnapshot } from '../../../api/dashboard'
+import { useSessionsOverviewQuery } from '../../../api/dashboard'
 
 export function useSessionsOverview() {
-  const query = useDashboardSnapshot()
-
-  return {
-    ...query,
-    data: query.data?.sessionsOverview,
-  }
+  return useSessionsOverviewQuery()
 }

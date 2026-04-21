@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useDashboardSnapshot } from '../api/dashboard'
+import { useDashboardMeta } from '../api/dashboard'
 import { DashboardShell } from '../components/layout/DashboardShell'
 import { WorkspaceTabs, type WorkspaceTab } from '../components/navigation/WorkspaceTabs'
 import { GatewayHealthCard } from '../features/health/components/GatewayHealthCard'
@@ -7,7 +7,7 @@ import { ReminderQueueCard } from '../features/reminders/components/ReminderQueu
 import { SessionOverviewCard } from '../features/sessions/components/SessionOverviewCard'
 
 export function App() {
-  const { data } = useDashboardSnapshot()
+  const { data } = useDashboardMeta()
   const taskgardenAvailable = data?.integrations.taskgarden.available ?? false
 
   const tabs = useMemo<WorkspaceTab[]>(() => {
@@ -16,8 +16,8 @@ export function App() {
         id: 'overview',
         label: 'Overview',
         eyebrow: 'Overview',
-        title: 'One-screen snapshot',
-        description: 'Fast scan across service health and recent sessions.',
+        title: 'Overview',
+        description: 'Service health and recent sessions.',
         content: (
           <div className="overview-grid">
             <GatewayHealthCard />
@@ -27,10 +27,10 @@ export function App() {
       },
       {
         id: 'health',
-        label: 'Health',
+        label: 'Gateway Health',
         eyebrow: 'Health',
-        title: 'Gateway and system pulse',
-        description: 'Quick checks for service health and dashboard freshness.',
+        title: 'Gateway Health',
+        description: 'Gateway status and recent heartbeat.',
         content: (
           <div className="workspace-stack">
             <GatewayHealthCard />
@@ -39,10 +39,10 @@ export function App() {
       },
       {
         id: 'sessions',
-        label: 'Sessions',
+        label: 'Chat Sessions',
         eyebrow: 'Sessions',
-        title: 'Who is doing what',
-        description: 'Owner-centric view of active, waiting, and idle sessions.',
+        title: 'Chat Sessions',
+        description: 'Recent active, waiting, and idle sessions.',
         content: (
           <div className="workspace-stack">
             <SessionOverviewCard />
@@ -54,10 +54,10 @@ export function App() {
     if (taskgardenAvailable) {
       orderedTabs.push({
         id: 'todos',
-        label: 'Todos',
-        eyebrow: 'Todos',
-        title: 'What needs attention next',
-        description: 'Reminder-backed work, ready to grow into richer task views.',
+        label: 'Taskgarden',
+        eyebrow: 'Taskgarden',
+        title: 'Taskgarden',
+        description: 'Upcoming reminder-backed tasks.',
         content: (
           <div className="workspace-stack">
             <ReminderQueueCard />
@@ -71,25 +71,9 @@ export function App() {
 
   return (
     <DashboardShell>
-      <div className="hero-card hero-card-compact">
-        <div>
-          <p className="eyebrow">Clawpoint</p>
-          <h1>Focused control, less clutter.</h1>
-          <p className="hero-copy">
-            Session control, health checks, and task visibility in one local dashboard.
-          </p>
-        </div>
-        <div className="hero-meta hero-meta-compact">
-          <div>
-            <span className="hero-meta-label">Mode</span>
-            <strong>Live local snapshot</strong>
-          </div>
-          <div>
-            <span className="hero-meta-label">Navigation</span>
-            <strong>Extendable tabbed workspace</strong>
-          </div>
-        </div>
-      </div>
+      <header className="hero-card hero-card-compact">
+        <h1>Clawpoint</h1>
+      </header>
 
       <WorkspaceTabs tabs={tabs} defaultTabId="overview" />
     </DashboardShell>

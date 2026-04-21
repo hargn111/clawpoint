@@ -58,7 +58,6 @@ export function buildGatewayHealth(sessions, reachable, now = new Date()) {
       notes: [
         `Gateway ${reachable ? 'reachable' : 'not reachable'} on loopback port 18789.`,
         `${sessionCount} tracked sessions in the main agent store.`,
-        'Dashboard is reading live workspace files, not mock adapters.',
       ],
     },
   }
