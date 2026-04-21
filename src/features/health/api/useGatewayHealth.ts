@@ -1,10 +1,5 @@
-import { useDashboardSnapshot } from '../../../api/dashboard'
+import { useGatewayHealthQuery } from '../../../api/dashboard'
 
 export function useGatewayHealth() {
-  const query = useDashboardSnapshot()
-
-  return {
-    ...query,
-    data: query.data?.gatewayHealth,
-  }
+  return useGatewayHealthQuery()
 }

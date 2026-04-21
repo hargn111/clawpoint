@@ -7,7 +7,7 @@ export function GatewayHealthCard() {
     <section className="panel-card">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Gateway health</p>
+          <p className="eyebrow">Gateway</p>
           <h3>Service status</h3>
         </div>
         <span className={`badge badge-${data?.data.service ?? 'healthy'}`}>
@@ -15,24 +15,16 @@ export function GatewayHealthCard() {
         </span>
       </div>
 
-      <dl className="stat-grid">
+      <dl className="stat-grid stat-grid-two-up">
         <div>
-          <dt>Session count</dt>
+          <dt>Sessions</dt>
           <dd>{isLoading ? '...' : data?.data.queueDepth}</dd>
         </div>
         <div>
           <dt>Last heartbeat</dt>
           <dd>{isLoading ? '...' : data?.data.lastHeartbeat}</dd>
         </div>
-        <div>
-          <dt>Source</dt>
-          <dd>{data?.source ?? 'mock'}</dd>
-        </div>
       </dl>
-
-      <ul className="list compact-list">
-        {data?.data.notes.map((note) => <li key={note}>{note}</li>)}
-      </ul>
     </section>
   )
 }

@@ -31,31 +31,43 @@ export function WorkspaceTabs({ tabs, defaultTabId }: WorkspaceTabsProps) {
 
   return (
     <section className="workspace-tabs">
-      <div className="workspace-tab-list" role="tablist" aria-label="Clawpoint sections">
-        {tabs.map((tab) => {
-          const selected = tab.id === activeTab.id
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              className={`workspace-tab ${selected ? 'workspace-tab-active' : ''}`}
-              onClick={() => setActiveTabId(tab.id)}
-            >
-              <span className="workspace-tab-label">{tab.label}</span>
-              <span className="workspace-tab-description">{tab.description}</span>
-            </button>
-          )
-        })}
-      </div>
+      <aside className="workspace-sidebar">
+        <div className="workspace-sidebar-header">
+          <span className="workspace-sidebar-label">Sections</span>
+        </div>
 
-      <div className="workspace-panel" role="tabpanel">
+        <div className="workspace-tab-list" role="tablist" aria-label="Clawpoint sections">
+          {tabs.map((tab) => {
+            const selected = tab.id === activeTab.id
+            return (
+              <button
+                key={tab.id}
+                id={`tab-${tab.id}`}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                className={`workspace-tab ${selected ? 'workspace-tab-active' : ''}`}
+                onClick={() => setActiveTabId(tab.id)}
+              >
+                <span className="workspace-tab-label">{tab.label}</span>
+                <span
+                  className="workspace-tab-tooltip"
+                  aria-label={`${tab.label}: ${tab.description}`}
+                  title={tab.description}
+                >
+                  ?
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </aside>
+
+      <div className="workspace-panel" role="tabpanel" aria-labelledby={`tab-${activeTab.id}`}>
         <div className="workspace-panel-header">
           <div>
             {activeTab.eyebrow ? <p className="eyebrow">{activeTab.eyebrow}</p> : null}
-            <h3>{activeTab.title}</h3>
-            <p className="muted-copy workspace-panel-copy">{activeTab.description}</p>
+            <h2>{activeTab.title}</h2>
           </div>
         </div>
 

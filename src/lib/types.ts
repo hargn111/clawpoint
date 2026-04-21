@@ -8,14 +8,11 @@ export type IntegrationStatus = {
   available: boolean
 }
 
-export type DashboardSnapshot = {
+export type DashboardMeta = {
   updatedAt: string
   integrations: {
     taskgarden: IntegrationStatus
   }
-  gatewayHealth: LoadState<GatewayHealth>
-  reminderQueue: LoadState<ReminderItem[]>
-  sessionsOverview: LoadState<SessionItem[]>
 }
 
 export type GatewayHealth = {
