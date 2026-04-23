@@ -10,6 +10,8 @@ import type {
   SessionCreateInput,
   SessionItem,
   SessionMessageInput,
+  SessionModelList,
+  SessionUpdateInput,
   TaskgardenTask,
   TaskgardenTaskCreateInput,
   TaskgardenTaskList,
@@ -133,12 +135,34 @@ export function useSessionAdminList() {
   })
 }
 
+export function useSessionModelList() {
+  return useQuery({
+    queryKey: ['session-model-list'],
+    queryFn: () => getJson<SessionModelList>('/api/session-admin/models'),
+    staleTime: 5 * 60_000,
+  })
+}
+
 export function useCreateSession() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (input: SessionCreateInput) =>
-      sendJson<{ sessionId: string; ok: true }>('/api/session-admin/sessions', 'POST', input),
+      sendJson<{ sessionId: string; key: string; ok: true }>('/api/session-admin/sessions', 'POST', input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['session-admin-list'] })
+      void queryClient.invalidateQueries({ queryKey: ['sessions-overview'] })
+      void queryClient.invalidateQueries({ queryKey: ['logs-events'] })
+    },
+  })
+}
+
+export function useUpdateSession() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: SessionUpdateInput }) =>
+      sendJson<{ ok: true }>(`/api/session-admin/sessions/${id}`, 'PATCH', input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['session-admin-list'] })
       void queryClient.invalidateQueries({ queryKey: ['sessions-overview'] })

@@ -103,6 +103,7 @@ export function sessionState(ageMs) {
 }
 
 export function sessionLabel(session) {
+  if (typeof session.label === 'string' && session.label.trim()) return session.label.trim()
   if (session.key === 'agent:main:main') return 'Freya main session'
   if (typeof session.key === 'string' && session.key.includes(':heartbeat')) return 'Heartbeat session'
   if (typeof session.key === 'string' && session.key.includes(':telegram:')) return 'Telegram session'
