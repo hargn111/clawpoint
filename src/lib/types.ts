@@ -87,6 +87,13 @@ export type SessionAdminItem = {
   updatedAt?: number
   chatType?: string
   channel?: string
+  status?: string
+  model?: string
+  modelProvider?: string
+  thinkingLevel?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
+  verboseLevel?: 'off' | 'on'
+  reasoningLevel?: 'off' | 'on' | 'stream'
+  lastTo?: string
 }
 
 export type SessionAdminList = {
@@ -94,15 +101,45 @@ export type SessionAdminList = {
   items: SessionAdminItem[]
 }
 
+export type SessionModelOption = {
+  value: string
+  label: string
+  provider: string
+  id: string
+  alias?: string
+  reasoning?: boolean
+  contextWindow?: number
+}
+
+export type SessionModelList = {
+  updatedAt: string
+  items: SessionModelOption[]
+}
+
 export type SessionCreateInput = {
-  message: string
-  thinking?: 'off' | 'minimal' | 'low' | 'medium' | 'high'
+  label?: string
+  model?: string | null
+  thinking?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
   verbose?: 'off' | 'on'
+  reasoning?: 'off' | 'on' | 'stream'
+  message?: string
+  channel?: string
+}
+
+export type SessionUpdateInput = {
+  key: string
+  label?: string
+  model?: string | null
+  thinking?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
+  verbose?: 'off' | 'on'
+  reasoning?: 'off' | 'on' | 'stream'
 }
 
 export type SessionMessageInput = {
+  key: string
   message: string
-  thinking?: 'off' | 'minimal' | 'low' | 'medium' | 'high'
+  thinking?: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
+  channel?: string
 }
 
 export type LogEvent = {

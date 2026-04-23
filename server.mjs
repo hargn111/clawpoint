@@ -141,6 +141,24 @@ async function gatewayReachable() {
   }
 }
 
+async function gatewayCall(method, params = {}) {
+  if (!GATEWAY_TOKEN) {
+    throw new Error(`Gateway token not configured for ${method}`)
+  }
+
+  const { stdout } = await execFile(
+    'openclaw',
+    ['gateway', 'call', method, '--json', '--token', GATEWAY_TOKEN, '--params', JSON.stringify(params)],
+    {
+      env: process.env,
+      timeout: 15000,
+      maxBuffer: 1024 * 1024 * 8,
+    },
+  )
+
+  return JSON.parse(stdout)
+}
+
 async function loadTodos() {
   if (!existsSync(TODOS_PATH)) {
     return { available: false, items: [] }
@@ -172,17 +190,35 @@ async function loadSessionsFromGateway() {
     return loadSessionsFromStore()
   }
 
-  const { stdout } = await execFile(
-    'openclaw',
-    ['gateway', 'call', 'sessions.list', '--json', '--token', GATEWAY_TOKEN, '--params', '{}'],
-    {
-      env: process.env,
-      timeout: 10000,
-      maxBuffer: 1024 * 1024 * 4,
-    },
-  )
-  const parsed = JSON.parse(stdout)
+  const parsed = await gatewayCall('sessions.list', {})
   return normalizeSessionsFromGateway(parsed)
+}
+
+async function loadSessionModelOptions() {
+  if (!GATEWAY_TOKEN) {
+    return {
+      updatedAt: new Date().toISOString(),
+      items: [],
+    }
+  }
+
+  const parsed = await gatewayCall('models.list', {})
+  const items = Array.isArray(parsed.models)
+    ? parsed.models.map((model) => ({
+        value: `${model.provider}/${model.id}`,
+        label: model.alias ? `${model.alias} · ${model.name}` : model.name,
+        provider: model.provider,
+        id: model.id,
+        alias: model.alias,
+        reasoning: Boolean(model.reasoning),
+        contextWindow: model.contextWindow,
+      }))
+    : []
+
+  return {
+    updatedAt: new Date().toISOString(),
+    items,
+  }
 }
 
 function dashboardMeta(todosAvailable, now = new Date()) {
@@ -318,6 +354,13 @@ function buildSessionAdminList(sessions, now = new Date()) {
         updatedAt: Number(session.updatedAt || 0),
         chatType: session.chatType || 'direct',
         channel: session.lastChannel || 'direct',
+        status: session.status,
+        model: session.model,
+        modelProvider: session.modelProvider,
+        thinkingLevel: session.thinkingLevel,
+        verboseLevel: session.verboseLevel,
+        reasoningLevel: session.reasoningLevel,
+        lastTo: session.lastTo,
       }
     })
 
@@ -327,26 +370,43 @@ function buildSessionAdminList(sessions, now = new Date()) {
   }
 }
 
-async function sendAgentMessageToSession(sessionId, input) {
-  const args = ['agent', '--session-id', sessionId, '--message', input.message, '--json', '--timeout', '120']
-  if (input.thinking && input.thinking !== 'off') {
-    args.push('--thinking', input.thinking)
-  }
-  if (input.verbose) {
-    args.push('--verbose', input.verbose)
-  }
+async function patchSessionSettings(key, input) {
+  const payload = { key }
+  if ('label' in input) payload.label = input.label?.trim() || null
+  if ('model' in input) payload.model = input.model?.trim() || null
+  if ('thinking' in input && input.thinking) payload.thinkingLevel = input.thinking
+  if ('verbose' in input && input.verbose) payload.verboseLevel = input.verbose
+  if ('reasoning' in input && input.reasoning) payload.reasoningLevel = input.reasoning
+  return gatewayCall('sessions.patch', payload)
+}
 
-  await execFile('openclaw', args, {
-    env: process.env,
-    timeout: 150000,
-    maxBuffer: 1024 * 1024 * 4,
-  })
+async function sendMessageToSession(key, input) {
+  const payload = {
+    key,
+    message: input.message,
+  }
+  if (input.channel?.trim()) payload.channel = input.channel.trim()
+  if (input.thinking && input.thinking !== 'off') payload.thinking = input.thinking
+  return gatewayCall('sessions.send', payload)
 }
 
 async function createSession(input) {
-  const sessionId = randomUUID()
-  await sendAgentMessageToSession(sessionId, input)
-  return { ok: true, sessionId }
+  const created = await gatewayCall('sessions.create', {})
+  const key = created.key
+  const sessionId = created.sessionId
+
+  if (input.label?.trim() || input.model?.trim() || input.thinking || input.verbose || input.reasoning) {
+    await patchSessionSettings(key, input)
+  }
+
+  if (input.message?.trim()) {
+    await sendMessageToSession(key, {
+      message: input.message.trim(),
+      channel: input.channel,
+    })
+  }
+
+  return { ok: true, sessionId, key }
 }
 
 async function permissionsSummary() {
@@ -452,18 +512,37 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, buildSessionAdminList(sessions))
       return
     }
+    if (req.method === 'GET' && url.pathname === '/api/session-admin/models') {
+      sendJson(res, 200, await loadSessionModelOptions())
+      return
+    }
     if (req.method === 'POST' && url.pathname === '/api/session-admin/sessions') {
       const body = await readJsonBody(req)
       sendJson(res, 200, await createSession(body))
       return
     }
+    if (req.method === 'PATCH' && url.pathname.startsWith('/api/session-admin/sessions/')) {
+      const body = await readJsonBody(req)
+      const sessionKey = body.key
+      if (!sessionKey) {
+        sendJson(res, 400, { error: 'Session key is required.' })
+        return
+      }
+      await patchSessionSettings(sessionKey, body)
+      sendJson(res, 200, { ok: true })
+      return
+    }
     if (req.method === 'POST' && url.pathname.startsWith('/api/session-admin/sessions/')) {
       const parts = url.pathname.split('/').filter(Boolean)
-      const sessionId = parts[3]
       const action = parts[4]
       if (action === 'message') {
         const body = await readJsonBody(req)
-        await sendAgentMessageToSession(sessionId, body)
+        const sessionKey = body.key
+        if (!sessionKey) {
+          sendJson(res, 400, { error: 'Session key is required.' })
+          return
+        }
+        await sendMessageToSession(sessionKey, body)
         sendJson(res, 200, { ok: true })
         return
       }
