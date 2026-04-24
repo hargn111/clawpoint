@@ -69,18 +69,22 @@ When Task Garden is not available:
 - todo tabs and controls should disappear or remain gracefully disabled at the product level
 - the rest of Clawpoint should continue to function normally
 
-### Tabbed interface
+### Tabbed workspace
 
-Planned navigation should likely move toward a tabbed or sectioned workspace, with candidates such as:
+The product now uses a tabbed workspace so monitoring, operations, and configuration surfaces can stay separated without feeling cramped.
+
+Current tabs include:
 
 - Overview
+- Gateway Health
 - Sessions
-- Todos
-- Reminders
-- Health
-- Settings
+- Task Garden (when available)
+- Model Config
+- MCP Servers
+- Logs & Events
+- Permissions & Auth
 
-The exact shape may change, but the interface should support fast switching between modes without feeling crowded.
+The exact shape may still evolve, but the interface should keep supporting fast switching between modes without feeling crowded.
 
 ### UI quality improvements
 
@@ -106,8 +110,11 @@ The exact shape may change, but the interface should support fast switching betw
 
 Today, Clawpoint already has:
 
+- a tabbed workspace with Overview, Gateway Health, Sessions, conditional Task Garden, Model Config, MCP Servers, Logs & Events, and Permissions & Auth views
 - a live overview screen
-- live session visibility
+- live session visibility plus a shared session editor for creating and updating sessions
+- Task Garden task management with a shared create/edit panel when Task Garden is available
+- visible manual refresh controls for session and task lists
 - live health visibility
 - Task Garden-backed reminder visibility when Task Garden is available
 - clean omission of task-backed reminder UI when Task Garden is unavailable
@@ -116,8 +123,8 @@ Today, Clawpoint already has:
 
 ### Phase 1, structured navigation
 
-- introduce a tabbed interface
-- separate overview from focused management screens
+- keep refining the existing tabbed workspace
+- separate overview from focused management screens more clearly
 - improve information architecture for longer daily use
 
 ### Phase 2, task and session operations
@@ -140,11 +147,11 @@ The only integration assumption worth documenting here is Task Garden for todo f
 
 ## Near-term priorities
 
-- strengthen the information architecture
-- add a real tabbed interface
+- strengthen the information architecture within the existing tabbed workspace
 - deepen session management views
-- begin actual todo management flows on top of optional Task Garden detection
+- expand task management flows on top of optional Task Garden detection
 - improve overall UI quality until the interface feels intentional rather than merely functional
+- keep the operational surfaces feeling fast, legible, and trustworthy during day-to-day use
 
 ## Status
 
