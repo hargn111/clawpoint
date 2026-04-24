@@ -38,7 +38,7 @@ function buildEditorState(task?: TaskgardenTask | null): TaskEditorState {
 }
 
 export function TaskgardenManagerCard() {
-  const { data, isLoading } = useTaskgardenTaskList()
+  const { data, isLoading, isFetching, refetch } = useTaskgardenTaskList()
   const createTask = useTaskgardenTaskCreate()
   const updateTask = useTaskgardenTaskUpdate()
   const sourceItems = useMemo(() => sortTasks(data?.items ?? []), [data?.items])
@@ -163,6 +163,11 @@ export function TaskgardenManagerCard() {
           </div>
 
           <div className="toolbar-stack compact-toolbar-stack">
+            <div className="toolbar-row toolbar-row-end">
+              <button className="button-secondary" type="button" onClick={() => void refetch()} disabled={isFetching}>
+                {isFetching ? 'Refreshing…' : 'Refresh list'}
+              </button>
+            </div>
             <label className="field-label field-label-inline field-grow">
               Search
               <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find by title" />
