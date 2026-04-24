@@ -106,8 +106,11 @@ The exact shape may change, but the interface should support fast switching betw
 
 Today, Clawpoint already has:
 
+- a tabbed workspace with Overview, Sessions, Task Garden, Reminders, Health, Logs, and Settings views
 - a live overview screen
-- live session visibility
+- live session visibility plus a shared session editor for creating and updating sessions
+- Task Garden task management with a shared create/edit panel when Task Garden is available
+- visible manual refresh controls for session and task lists
 - live health visibility
 - Task Garden-backed reminder visibility when Task Garden is available
 - clean omission of task-backed reminder UI when Task Garden is unavailable
@@ -140,11 +143,11 @@ The only integration assumption worth documenting here is Task Garden for todo f
 
 ## Near-term priorities
 
-- strengthen the information architecture
-- add a real tabbed interface
+- strengthen the information architecture within the existing tabbed workspace
 - deepen session management views
-- begin actual todo management flows on top of optional Task Garden detection
+- expand task management flows on top of optional Task Garden detection
 - improve overall UI quality until the interface feels intentional rather than merely functional
+- keep the operational surfaces feeling fast, legible, and trustworthy during day-to-day use
 
 ## Status
 
