@@ -105,7 +105,6 @@ export function TaskgardenManagerCard() {
         note: editor.note.trim() || undefined,
         remindIntervalHours: editor.reminderHours ? Number(editor.reminderHours) : null,
       })
-      await refetch()
       setPendingSelectionId(result.item.id)
       setNotice('Task created.')
       return
@@ -122,7 +121,6 @@ export function TaskgardenManagerCard() {
         appendNote: editor.appendNote.trim() || undefined,
       },
     })
-    await refetch()
     setEditor((current) => ({ ...current, appendNote: '' }))
     setNotice(`Saved ${selected.id}.`)
   }

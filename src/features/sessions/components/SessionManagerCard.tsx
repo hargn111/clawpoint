@@ -120,7 +120,6 @@ export function SessionManagerCard() {
         message: editor.starterMessage.trim() || undefined,
         channel: editor.channel.trim() || undefined,
       })
-      await refetch()
       setPendingSelectionId(result.sessionId)
       setNotice(editor.starterMessage.trim() ? 'Session created and starter message sent.' : 'Session created.')
       return
@@ -138,7 +137,6 @@ export function SessionManagerCard() {
         reasoning: editor.reasoning,
       },
     })
-    await refetch()
     setNotice('Session settings saved.')
   }
 
@@ -155,7 +153,6 @@ export function SessionManagerCard() {
         channel: editor.channel.trim() || undefined,
       },
     })
-    await refetch()
     setEditor((current) => ({ ...current, outboundMessage: '', outboundThinking: 'off' }))
     setNotice('Message sent.')
   }
