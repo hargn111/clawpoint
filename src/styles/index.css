@@ -505,7 +505,25 @@ textarea {
   cursor: pointer;
 }
 
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: inherit;
+  cursor: pointer;
+}
+
 .button-primary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.button-secondary:disabled {
   opacity: 0.6;
   cursor: default;
 }
@@ -519,6 +537,14 @@ textarea {
 
 .compact-toolbar-stack {
   margin-top: 12px;
+}
+
+.action-row-compact {
+  gap: 8px;
+}
+
+.toolbar-row-end {
+  justify-content: flex-end;
 }
 
 .manager-layout {

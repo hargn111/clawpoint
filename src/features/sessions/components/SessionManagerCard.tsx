@@ -51,7 +51,7 @@ function initialEditorState(session?: SessionAdminItem | null) {
 }
 
 export function SessionManagerCard() {
-  const { data, isLoading } = useSessionListAdmin()
+  const { data, isLoading, isFetching, refetch } = useSessionListAdmin()
   const { data: modelData } = useSessionModels()
   const createSession = useSessionCreate()
   const updateSession = useSessionUpdate()
@@ -120,6 +120,7 @@ export function SessionManagerCard() {
         message: editor.starterMessage.trim() || undefined,
         channel: editor.channel.trim() || undefined,
       })
+      await refetch()
       setPendingSelectionId(result.sessionId)
       setNotice(editor.starterMessage.trim() ? 'Session created and starter message sent.' : 'Session created.')
       return
@@ -137,6 +138,7 @@ export function SessionManagerCard() {
         reasoning: editor.reasoning,
       },
     })
+    await refetch()
     setNotice('Session settings saved.')
   }
 
@@ -153,6 +155,7 @@ export function SessionManagerCard() {
         channel: editor.channel.trim() || undefined,
       },
     })
+    await refetch()
     setEditor((current) => ({ ...current, outboundMessage: '', outboundThinking: 'off' }))
     setNotice('Message sent.')
   }
@@ -180,6 +183,11 @@ export function SessionManagerCard() {
           </div>
 
           <div className="toolbar-stack compact-toolbar-stack">
+            <div className="toolbar-row toolbar-row-end">
+              <button className="button-secondary" type="button" onClick={() => void refetch()} disabled={isFetching}>
+                {isFetching ? 'Refreshing…' : 'Refresh list'}
+              </button>
+            </div>
             <label className="field-label field-label-inline field-grow">
               Search
               <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find by label, model, or channel" />
