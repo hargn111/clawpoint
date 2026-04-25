@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
 import { useLogsEvents } from '../../../api/dashboard'
 
 export function LogsEventsPanel() {
@@ -6,10 +7,18 @@ export function LogsEventsPanel() {
   const [severity, setSeverity] = useState<'all' | 'info' | 'warn' | 'error'>('all')
   const [pathFilter, setPathFilter] = useState('')
 
+  const source = data?.items ?? []
+  const errorCount = source.filter((item) => item.level === 'error' || item.status >= 500).length
+  const warnCount = source.filter((item) => item.level === 'warn' || (item.status >= 400 && item.status < 500)).length
+
   const items = useMemo(() => {
     const source = data?.items ?? []
     return source.filter((item) => {
-      const severityMatch = severity === 'all' || item.level === severity
+      const severityMatch =
+        severity === 'all' ||
+        item.level === severity ||
+        (severity === 'error' && item.status >= 500) ||
+        (severity === 'warn' && item.status >= 400 && item.status < 500)
       const pathMatch = !pathFilter.trim() || item.path.toLowerCase().includes(pathFilter.toLowerCase())
       return severityMatch && pathMatch
     })
@@ -20,9 +29,24 @@ export function LogsEventsPanel() {
       <div className="panel-header">
         <div>
           <p className="eyebrow">Logs & events</p>
-          <h3>Recent API activity</h3>
+          <h3>Recent API events</h3>
         </div>
-        <span className="muted-copy">{isLoading ? 'Loading…' : `${items.length} rows`}</span>
+        <div className="freshness-stack">
+          <span className="muted-copy">{isLoading ? 'Loading…' : `${items.length} rows`}</span>
+          <FreshnessStamp updatedAt={data?.updatedAt} isFetching={isLoading} />
+        </div>
+      </div>
+
+      <div className="quick-filter-row" aria-label="Quick log filters">
+        <button className={`filter-chip ${severity === 'all' ? 'filter-chip-active' : ''}`} type="button" onClick={() => setSeverity('all')}>
+          All
+        </button>
+        <button className={`filter-chip ${severity === 'error' ? 'filter-chip-active' : ''}`} type="button" onClick={() => setSeverity('error')}>
+          Errors · {errorCount}
+        </button>
+        <button className={`filter-chip ${severity === 'warn' ? 'filter-chip-active' : ''}`} type="button" onClick={() => setSeverity('warn')}>
+          Warnings · {warnCount}
+        </button>
       </div>
 
       <div className="toolbar-row">

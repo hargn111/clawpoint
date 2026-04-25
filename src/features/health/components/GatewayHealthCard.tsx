@@ -1,3 +1,4 @@
+import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
 import { useGatewayHealth } from '../api/useGatewayHealth'
 
 function SparkBars({ values }: { values: number[] }) {
@@ -20,17 +21,20 @@ export function GatewayHealthCard() {
     <section className="panel-card panel-card-wide">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Gateway health</p>
-          <h3>Service pulse</h3>
+          <p className="eyebrow">Gateway performance</p>
+          <h3>Health and latency</h3>
         </div>
-        <span className={`badge badge-${data?.data.service ?? 'healthy'}`}>
-          {isLoading ? 'Loading' : data?.data.service ?? 'healthy'}
-        </span>
+        <div className="freshness-stack">
+          <span className={`badge badge-${data?.data.service ?? 'healthy'}`}>
+            {isLoading ? 'Loading' : data?.data.service ?? 'healthy'}
+          </span>
+          <FreshnessStamp updatedAt={data?.updatedAt} isFetching={isLoading} />
+        </div>
       </div>
 
       <div className="metric-grid metric-grid-health">
         <div className="metric-card">
-          <span className="metric-label">sessions</span>
+          <span className="metric-label">active sessions</span>
           <strong className="metric-value">{isLoading ? '...' : data?.data.queueDepth}</strong>
         </div>
         <div className="metric-card">
@@ -54,7 +58,7 @@ export function GatewayHealthCard() {
           <p className="detail-copy">Restarted {isLoading ? '...' : new Date(data?.data.lastRestartAt ?? '').toLocaleString('en-US', { timeZone: 'America/New_York' })}</p>
         </div>
         <div className="detail-card">
-          <span className="metric-label">last heartbeat</span>
+          <span className="metric-label">heartbeat freshness</span>
           <strong>{isLoading ? '...' : data?.data.lastHeartbeat}</strong>
           <div className="hint-row">
             <span className="cli-pill">openclaw gateway call status</span>
@@ -64,8 +68,8 @@ export function GatewayHealthCard() {
 
       <div className="sparkline-card">
         <div className="panel-subheader">
-          <span className="metric-label">recent latency</span>
-          <span className="muted-copy">last {values.length} API requests</span>
+          <span className="metric-label">latency samples</span>
+          <span className="muted-copy">last {values.length} API requests · taller bars mean slower responses</span>
         </div>
         <SparkBars values={values} />
       </div>

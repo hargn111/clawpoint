@@ -1,3 +1,4 @@
+import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
 import { usePermissionsSummary } from '../../../api/dashboard'
 
 export function PermissionsPanel() {
@@ -8,11 +9,14 @@ export function PermissionsPanel() {
       <div className="panel-header">
         <div>
           <p className="eyebrow">Permissions & auth</p>
-          <h3>Gateway auth summary</h3>
+          <h3>Gateway access</h3>
         </div>
-        <span className={`badge badge-${data?.tokenConfigured ? 'healthy' : 'offline'}`}>
-          {isLoading ? 'Loading' : data?.tokenConfigured ? 'configured' : 'missing'}
-        </span>
+        <div className="freshness-stack">
+          <span className={`badge badge-${data?.tokenConfigured ? 'healthy' : 'offline'}`}>
+            {isLoading ? 'Loading' : data?.tokenConfigured ? 'configured' : 'missing'}
+          </span>
+          <FreshnessStamp updatedAt={data?.updatedAt} isFetching={isLoading} />
+        </div>
       </div>
 
       <div className="detail-grid">

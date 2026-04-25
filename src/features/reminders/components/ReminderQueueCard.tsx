@@ -1,3 +1,4 @@
+import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
 import { useReminderQueue } from '../api/useReminderQueue'
 
 export function ReminderQueueCard() {
@@ -8,10 +9,13 @@ export function ReminderQueueCard() {
     <section className="panel-card">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Reminders</p>
-          <h3>What needs attention next</h3>
+          <p className="eyebrow">Reminder-backed tasks</p>
+          <h3>Attention queue</h3>
         </div>
-        <span className="muted-copy">{isLoading ? 'Loading…' : `${items.length} items`}</span>
+        <div className="freshness-stack">
+          <span className="muted-copy">{isLoading ? 'Loading…' : `${items.length} items`}</span>
+          <FreshnessStamp updatedAt={data?.updatedAt} isFetching={isLoading} />
+        </div>
       </div>
 
       {items.length === 0 && !isLoading ? (

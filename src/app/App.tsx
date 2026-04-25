@@ -5,6 +5,7 @@ import { WorkspaceTabs, type WorkspaceTab } from '../components/navigation/Works
 import { GatewayHealthCard } from '../features/health/components/GatewayHealthCard'
 import { LogsEventsPanel } from '../features/logs/components/LogsEventsPanel'
 import { PlatformWatchCard } from '../features/overview/components/PlatformWatchCard'
+import { AttentionOverviewPanel } from '../features/overview/components/AttentionOverviewPanel'
 import { OverviewSummaryPanel } from '../features/overview/components/OverviewSummaryPanel'
 import { PermissionsPanel } from '../features/permissions/components/PermissionsPanel'
 import { ReminderQueueCard } from '../features/reminders/components/ReminderQueueCard'
@@ -26,9 +27,10 @@ export function App() {
         icon: '◫',
         eyebrow: 'Overview',
         title: 'Overview',
-        description: 'Live workspace status, recent activity, and upstream watch items.',
+        description: 'Attention-first health, active work, reminders, and recent failures.',
         content: (
           <div className="workspace-stack">
+            <AttentionOverviewPanel />
             <OverviewSummaryPanel />
             <GatewayHealthCard />
             <SessionOverviewCard />
@@ -43,7 +45,7 @@ export function App() {
         icon: '◎',
         eyebrow: 'Gateway health',
         title: 'Gateway Health',
-        description: 'Latency, request volume, uptime, and recent service pulse.',
+        description: 'Gateway performance, heartbeat freshness, latency, and restart context.',
         content: (
           <div className="workspace-stack">
             <GatewayHealthCard />
@@ -57,7 +59,7 @@ export function App() {
         icon: '◧',
         eyebrow: 'Sessions',
         title: 'Sessions',
-        description: 'Create sessions, send follow-ups, and scan recent state.',
+        description: 'Find active or waiting sessions, edit defaults, and send follow-ups.',
         content: (
           <div className="workspace-stack">
             <SessionManagerCard />
@@ -75,7 +77,7 @@ export function App() {
         icon: '▣',
         eyebrow: 'Task Garden',
         title: 'Task Garden',
-        description: 'Manage tasks, reminders, and work triage from one place.',
+        description: 'Triage open work, reminder-backed tasks, and planned/unplanned queues.',
         content: (
           <div className="workspace-stack">
             <TaskgardenManagerCard />
@@ -89,7 +91,7 @@ export function App() {
       {
         id: 'model-config',
         label: 'Model Config',
-        group: 'Configuration',
+        group: 'Advanced',
         icon: '⌘',
         eyebrow: 'Model Config',
         title: 'Model Config',
@@ -111,7 +113,7 @@ export function App() {
       {
         id: 'mcp-servers',
         label: 'MCP Servers',
-        group: 'Configuration',
+        group: 'Advanced',
         icon: '⌗',
         eyebrow: 'MCP Servers',
         title: 'MCP Servers',
@@ -137,13 +139,13 @@ export function App() {
         icon: '⋯',
         eyebrow: 'Logs & Events',
         title: 'Logs & Events',
-        description: 'Recent API events with filterable severity and route matching.',
+        description: 'Recent API events with error-first filters, status, route, and duration.',
         content: <LogsEventsPanel />,
       },
       {
         id: 'permissions-auth',
         label: 'Permissions & Auth',
-        group: 'Configuration',
+        group: 'Advanced',
         icon: '⚿',
         eyebrow: 'Permissions & Auth',
         title: 'Permissions & Auth',

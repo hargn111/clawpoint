@@ -1,5 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
 
 import {
   createDashboardSnapshot,
@@ -8,6 +11,7 @@ import {
   formatDueLabel,
   normalizeSessionsFromGateway,
 } from '../server/dashboard-data.mjs'
+import { detectOpenClawVersion } from '../server/platform-meta.mjs'
 
 test('formatDueLabel handles overdue and future times', () => {
   const now = new Date('2026-04-18T18:00:00Z')
@@ -117,4 +121,17 @@ test('normalizeSessionsFromGateway preserves gateway session entries', () => {
   assert.equal(sessions.length, 1)
   assert.equal(sessions[0].key, 'agent:main:main')
   assert.equal(sessions[0].sessionId, 'abc')
+})
+
+test('detectOpenClawVersion reads package metadata and falls back to null', async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'clawpoint-platform-'))
+  try {
+    const packagePath = path.join(tempDir, 'package.json')
+    await writeFile(packagePath, JSON.stringify({ version: '2026.4.23' }), 'utf8')
+
+    assert.equal(await detectOpenClawVersion(packagePath), '2026.4.23')
+    assert.equal(await detectOpenClawVersion(path.join(tempDir, 'missing.json')), null)
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
 })

@@ -13,6 +13,9 @@ export type DashboardMeta = {
   integrations: {
     taskgarden: IntegrationStatus
   }
+  platform?: {
+    openclawVersion?: string | null
+  }
 }
 
 export type GatewayHealth = {

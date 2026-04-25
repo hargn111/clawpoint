@@ -17,6 +17,7 @@ import {
   sessionLabel,
   sessionState,
 } from './server/dashboard-data.mjs'
+import { detectOpenClawVersion } from './server/platform-meta.mjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -26,6 +27,7 @@ const TODOS_PATH = process.env.TASKGARDEN_TODOS_PATH || '/home/claw/.local/share
 const SESSIONS_PATH = process.env.SESSIONS_PATH || '/root/.openclaw/agents/main/sessions/sessions.json'
 const GATEWAY_BASE_URL = process.env.GATEWAY_BASE_URL || 'http://127.0.0.1:18789'
 const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || ''
+const OPENCLAW_PACKAGE_JSON = process.env.OPENCLAW_PACKAGE_JSON || '/usr/lib/node_modules/openclaw/package.json'
 
 const host = process.env.HOST || '127.0.0.1'
 const port = Number(process.env.PORT || 4176)
@@ -243,8 +245,13 @@ async function buildDashboardSnapshot() {
 }
 
 async function buildMetaPayload() {
-  const todosState = await loadTodos()
-  return dashboardMeta(todosState.available)
+  const [todosState, openclawVersion] = await Promise.all([loadTodos(), detectOpenClawVersion(OPENCLAW_PACKAGE_JSON)])
+  return {
+    ...dashboardMeta(todosState.available),
+    platform: {
+      openclawVersion,
+    },
+  }
 }
 
 async function buildReminderPayload() {
