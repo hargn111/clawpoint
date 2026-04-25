@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
+import { useDrawerFocus } from '../../../components/common/useDrawerFocus'
 import type { SessionAdminItem } from '../../../lib/types'
 import {
   useSessionCreate,
@@ -62,21 +64,26 @@ export function SessionManagerCard() {
   const [selectedId, setSelectedId] = useState('')
   const [pendingSelectionId, setPendingSelectionId] = useState('')
   const [search, setSearch] = useState('')
+  const [stateFilter, setStateFilter] = useState<'all' | 'active' | 'waiting' | 'idle'>('all')
   const [notice, setNotice] = useState('')
   const [editor, setEditor] = useState(initialEditorState())
 
   const filteredItems = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    if (!needle) return items
     return items.filter((item) => {
-      return [item.label, item.summary, item.channel, item.model, item.modelProvider]
+      const stateMatch = stateFilter === 'all' || item.state === stateFilter
+      const searchMatch = !needle || [item.label, item.summary, item.channel, item.model, item.modelProvider]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(needle))
+      return stateMatch && searchMatch
     })
-  }, [items, search])
+  }, [items, search, stateFilter])
 
   const selected = items.find((item) => item.id === selectedId) ?? null
   const isDraft = selectedId === NEW_SESSION_ID || (!selectedId && items.length === 0)
+  const editorOpen = isDraft || Boolean(selected)
+  const closeDrawer = useCallback(() => setSelectedId(''), [])
+  const drawerRef = useDrawerFocus(editorOpen, closeDrawer)
 
   useEffect(() => {
     if (pendingSelectionId && items.some((item) => item.id === pendingSelectionId)) {
@@ -85,12 +92,8 @@ export function SessionManagerCard() {
       return
     }
     if (selectedId === NEW_SESSION_ID) return
-    if (!items.length) {
-      setSelectedId(NEW_SESSION_ID)
-      return
-    }
-    if (!selectedId || !items.some((item) => item.id === selectedId)) {
-      setSelectedId(items[0].id)
+    if (selectedId && !items.some((item) => item.id === selectedId)) {
+      setSelectedId('')
     }
   }, [items, pendingSelectionId, selectedId])
 
@@ -164,15 +167,18 @@ export function SessionManagerCard() {
           <p className="eyebrow">Sessions</p>
           <h3>Manage sessions</h3>
         </div>
-        <span className="muted-copy">{isLoading ? 'Loading…' : `${items.length} visible`}</span>
+        <div className="freshness-stack">
+          <span className="muted-copy">{isLoading ? 'Loading…' : `${filteredItems.length} of ${items.length} visible`}</span>
+          <FreshnessStamp updatedAt={data?.updatedAt} isFetching={isFetching} />
+        </div>
       </div>
 
-      <div className="manager-layout">
+      <div className="manager-focus-layout">
         <div className="manager-list-card">
           <div className="panel-subheader">
             <div>
               <h4>Session list</h4>
-              <p className="selector-copy">Create opens the same editor used for existing sessions.</p>
+              <p className="selector-copy">Scan first. Open a session only when you want details or actions.</p>
             </div>
             <button className="button-primary" type="button" onClick={() => setSelectedId(NEW_SESSION_ID)}>
               New session
@@ -189,11 +195,20 @@ export function SessionManagerCard() {
               Search
               <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find by label, model, or channel" />
             </label>
+            <label className="field-label field-label-inline">
+              State
+              <select value={stateFilter} onChange={(event) => setStateFilter(event.target.value as typeof stateFilter)}>
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="waiting">Waiting</option>
+                <option value="idle">Idle</option>
+              </select>
+            </label>
           </div>
 
           {filteredItems.length === 0 && !isLoading ? <div className="empty-state">No sessions match the current search.</div> : null}
 
-          <div className="selector-list manager-selector-list">
+          <div className="selector-list manager-selector-list manager-card-list">
             {filteredItems.map((item) => (
               <button
                 key={item.id}
@@ -206,13 +221,17 @@ export function SessionManagerCard() {
                   <span className="selector-copy">{item.summary}</span>
                   <span className="selector-copy">{item.modelProvider && item.model ? `${item.modelProvider}/${item.model}` : 'default model'}</span>
                 </span>
-                <span className={`badge badge-${item.state}`}>{item.state}</span>
+                <span className="selector-item-actions">
+                  <span className={`badge badge-${item.state}`}>{item.state}</span>
+                </span>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="editor-card manager-editor-card">
+        {editorOpen ? <div className="drawer-backdrop" onClick={closeDrawer} aria-hidden="true" /> : null}
+        {editorOpen ? (
+        <div ref={drawerRef} className="editor-card manager-editor-card manager-drawer" role="dialog" aria-modal="true" aria-label={isDraft ? 'New session' : 'Session editor'} tabIndex={-1}>
           <div className="panel-subheader">
             <div>
               <h4>{isDraft ? 'New session' : 'Session editor'}</h4>
@@ -220,7 +239,10 @@ export function SessionManagerCard() {
                 {isDraft ? 'Set session defaults, then optionally send a starter message.' : 'Edit defaults here, then send a message below.'}
               </p>
             </div>
-            {!isDraft && selected ? <span className={`badge badge-${selected.state}`}>{selected.state}</span> : null}
+            <div className="drawer-title-actions">
+              {!isDraft && selected ? <span className={`badge badge-${selected.state}`}>{selected.state}</span> : null}
+              <button className="button-secondary button-compact" type="button" onClick={closeDrawer}>Close</button>
+            </div>
           </div>
 
           {!isDraft && selected ? (
@@ -244,6 +266,8 @@ export function SessionManagerCard() {
             </dl>
           ) : null}
 
+          <details className="editor-section" open={isDraft}>
+            <summary>Session settings</summary>
           <form className="editor-stack" onSubmit={handleSaveSession}>
             <div className="field-grid-two-up">
               <label className="field-label">
@@ -305,7 +329,10 @@ export function SessionManagerCard() {
               {notice ? <span className="muted-copy">{notice}</span> : null}
             </div>
           </form>
+          </details>
 
+          <details className="editor-section" open>
+            <summary>{isDraft ? 'Starter message' : 'Compose message'}</summary>
           <form className="editor-stack" onSubmit={isDraft ? handleSaveSession : handleSendMessage}>
             <div className="panel-subheader compact-panel-subheader">
               <div>
@@ -367,7 +394,9 @@ export function SessionManagerCard() {
               </div>
             ) : null}
           </form>
+          </details>
         </div>
+        ) : null}
       </div>
     </section>
   )

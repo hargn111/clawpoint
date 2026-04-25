@@ -1,3 +1,4 @@
+import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
 import { useGatewayHealth } from '../../health/api/useGatewayHealth'
 import { useReminderQueue } from '../../reminders/api/useReminderQueue'
 import { useSessionListAdmin } from '../../sessions/api/useSessionAdmin'
@@ -20,10 +21,10 @@ export function OverviewSummaryPanel() {
     <section className="panel-card panel-card-wide">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Overview</p>
-          <h3>Live workspace snapshot</h3>
+          <p className="eyebrow">Current activity</p>
+          <h3>Workspace totals</h3>
         </div>
-        <span className="muted-copy">Fast scan across the current dev surface</span>
+        <FreshnessStamp updatedAt={gateway?.updatedAt ?? sessions?.updatedAt ?? tasks?.updatedAt} />
       </div>
 
       <div className="metric-grid">

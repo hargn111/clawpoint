@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
+import { useDrawerFocus } from '../../../components/common/useDrawerFocus'
 import type { TaskgardenTask } from '../../../lib/types'
 import {
   useTaskgardenTaskCreate,
@@ -46,6 +48,7 @@ export function TaskgardenManagerCard() {
   const [pendingSelectionId, setPendingSelectionId] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'done'>('all')
   const [bucketFilter, setBucketFilter] = useState<'all' | 'planned' | 'unplanned'>('all')
+  const [reminderFilter, setReminderFilter] = useState<'all' | 'with-reminders' | 'without-reminders'>('all')
   const [search, setSearch] = useState('')
   const [notice, setNotice] = useState('')
   const [editor, setEditor] = useState<TaskEditorState>(buildEditorState())
@@ -54,13 +57,20 @@ export function TaskgardenManagerCard() {
     return sourceItems.filter((item) => {
       const statusMatch = statusFilter === 'all' || item.status === statusFilter
       const bucketMatch = bucketFilter === 'all' || item.bucket === bucketFilter
+      const reminderMatch =
+        reminderFilter === 'all' ||
+        (reminderFilter === 'with-reminders' && item.remind_interval_hours != null) ||
+        (reminderFilter === 'without-reminders' && item.remind_interval_hours == null)
       const searchMatch = !search.trim() || item.title.toLowerCase().includes(search.toLowerCase())
-      return statusMatch && bucketMatch && searchMatch
+      return statusMatch && bucketMatch && reminderMatch && searchMatch
     })
-  }, [bucketFilter, search, sourceItems, statusFilter])
+  }, [bucketFilter, reminderFilter, search, sourceItems, statusFilter])
 
   const selected = sourceItems.find((item) => item.id === selectedId) ?? null
   const isDraft = selectedId === NEW_TASK_ID || (!selectedId && sourceItems.length === 0)
+  const editorOpen = isDraft || Boolean(selected)
+  const closeDrawer = useCallback(() => setSelectedId(''), [])
+  const drawerRef = useDrawerFocus<HTMLFormElement>(editorOpen, closeDrawer)
 
   const openCount = sourceItems.filter((item) => item.status === 'open').length
   const plannedCount = sourceItems.filter((item) => item.bucket === 'planned' && item.status === 'open').length
@@ -73,12 +83,8 @@ export function TaskgardenManagerCard() {
       return
     }
     if (selectedId === NEW_TASK_ID) return
-    if (!sourceItems.length) {
-      setSelectedId(NEW_TASK_ID)
-      return
-    }
-    if (!selectedId || !sourceItems.some((item) => item.id === selectedId)) {
-      setSelectedId(sourceItems[0].id)
+    if (selectedId && !sourceItems.some((item) => item.id === selectedId)) {
+      setSelectedId('')
     }
   }, [pendingSelectionId, selectedId, sourceItems])
 
@@ -132,7 +138,10 @@ export function TaskgardenManagerCard() {
           <p className="eyebrow">Task Garden</p>
           <h3>Manage tasks</h3>
         </div>
-        <span className="muted-copy">{isLoading ? 'Loading…' : `${sourceItems.length} tasks`}</span>
+        <div className="freshness-stack">
+          <span className="muted-copy">{isLoading ? 'Loading…' : `${filteredItems.length} of ${sourceItems.length} tasks`}</span>
+          <FreshnessStamp updatedAt={data?.updatedAt} isFetching={isFetching} />
+        </div>
       </div>
 
       <div className="metric-grid metric-grid-compact">
@@ -150,12 +159,12 @@ export function TaskgardenManagerCard() {
         </div>
       </div>
 
-      <div className="manager-layout">
+      <div className="manager-focus-layout">
         <div className="manager-list-card">
           <div className="panel-subheader">
             <div>
               <h4>Task list</h4>
-              <p className="selector-copy">Create opens the same editor used for existing tasks.</p>
+              <p className="selector-copy">Scan first. Open a task only when you need details or edits.</p>
             </div>
             <button className="button-primary" type="button" onClick={() => setSelectedId(NEW_TASK_ID)}>
               New task
@@ -189,12 +198,20 @@ export function TaskgardenManagerCard() {
                   <option value="unplanned">Unplanned</option>
                 </select>
               </label>
+              <label className="field-label field-label-inline">
+                Reminder
+                <select value={reminderFilter} onChange={(event) => setReminderFilter(event.target.value as typeof reminderFilter)}>
+                  <option value="all">All</option>
+                  <option value="with-reminders">With reminders</option>
+                  <option value="without-reminders">Without reminders</option>
+                </select>
+              </label>
             </div>
           </div>
 
           {filteredItems.length === 0 && !isLoading ? <div className="empty-state">No tasks match the current filters.</div> : null}
 
-          <div className="selector-list manager-selector-list">
+          <div className="selector-list manager-selector-list manager-card-list">
             {filteredItems.map((item) => (
               <button
                 key={item.id}
@@ -211,21 +228,28 @@ export function TaskgardenManagerCard() {
                     <span className="selector-copy">every {item.remind_interval_hours}h</span>
                   ) : null}
                 </span>
-                <span className={`badge badge-${item.status === 'open' ? 'active' : 'idle'}`}>{item.status}</span>
+                <span className="selector-item-actions">
+                  <span className={`badge badge-${item.status === 'open' ? 'active' : 'idle'}`}>{item.status}</span>
+                </span>
               </button>
             ))}
           </div>
         </div>
 
-        <form className="editor-card manager-editor-card" onSubmit={handleSave}>
+        {editorOpen ? <div className="drawer-backdrop" onClick={closeDrawer} aria-hidden="true" /> : null}
+        {editorOpen ? (
+        <form ref={drawerRef} className="editor-card manager-editor-card manager-drawer" onSubmit={handleSave} role="dialog" aria-modal="true" aria-label={isDraft ? 'New task' : 'Task editor'} tabIndex={-1}>
           <div className="panel-subheader">
             <div>
               <h4>{isDraft ? 'New task' : 'Task editor'}</h4>
-              <p className="selector-copy">Same editor for new and existing tasks, with create or save depending on selection.</p>
+              <p className="selector-copy">Same surface for create and edit, with optional sections below.</p>
             </div>
-            {!isDraft && selected ? (
-              <span className={`badge badge-${selected.status === 'open' ? 'active' : 'idle'}`}>{selected.status}</span>
-            ) : null}
+            <div className="drawer-title-actions">
+              {!isDraft && selected ? (
+                <span className={`badge badge-${selected.status === 'open' ? 'active' : 'idle'}`}>{selected.status}</span>
+              ) : null}
+              <button className="button-secondary button-compact" type="button" onClick={closeDrawer}>Close</button>
+            </div>
           </div>
 
           {!isDraft && selected ? (
@@ -247,6 +271,8 @@ export function TaskgardenManagerCard() {
               <input value={editor.title} onChange={(event) => updateEditor('title', event.target.value)} required />
             </label>
 
+            <details className="editor-section" open={isDraft}>
+              <summary>Status, bucket, and reminder</summary>
             <div className="field-grid-session-settings">
               <label className="field-label">
                 Bucket
@@ -274,7 +300,10 @@ export function TaskgardenManagerCard() {
                 />
               </label>
             </div>
+            </details>
 
+            <details className="editor-section" open>
+              <summary>Notes</summary>
             <label className="field-label">
               {isDraft ? 'Initial note' : 'Current note'}
               <textarea
@@ -297,6 +326,7 @@ export function TaskgardenManagerCard() {
                 />
               </label>
             ) : null}
+            </details>
 
             <div className="action-row">
               <button className="button-primary" type="submit" disabled={(createTask.isPending || updateTask.isPending) || !editor.title.trim()}>
@@ -312,6 +342,7 @@ export function TaskgardenManagerCard() {
             </div>
           </div>
         </form>
+        ) : null}
       </div>
     </section>
   )

@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const sessionMocks = vi.hoisted(() => ({
@@ -93,5 +93,33 @@ describe('manager refresh controls', () => {
     render(<TaskgardenManagerCard />)
     fireEvent.click(screen.getByRole('button', { name: 'Refresh list' }))
     expect(taskMocks.refetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('sessions open in a keyboard-dismissible drawer and return focus', async () => {
+    render(<SessionManagerCard />)
+
+    const trigger = screen.getByRole('button', { name: /Session One/ })
+    trigger.focus()
+    fireEvent.click(trigger)
+
+    expect(screen.getByRole('dialog', { name: 'Session editor' })).not.toBeNull()
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Session editor' })).toBeNull())
+    expect(document.activeElement).toBe(trigger)
+  })
+
+  it('tasks open in a keyboard-dismissible drawer and return focus', async () => {
+    render(<TaskgardenManagerCard />)
+
+    const trigger = screen.getByRole('button', { name: /Task One/ })
+    trigger.focus()
+    fireEvent.click(trigger)
+
+    expect(screen.getByRole('dialog', { name: 'Task editor' })).not.toBeNull()
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Task editor' })).toBeNull())
+    expect(document.activeElement).toBe(trigger)
   })
 })

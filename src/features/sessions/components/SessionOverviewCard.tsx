@@ -1,3 +1,4 @@
+import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
 import { useSessionsOverview } from '../api/useSessionsOverview'
 
 export function SessionOverviewCard() {
@@ -8,11 +9,13 @@ export function SessionOverviewCard() {
     <section className="panel-card panel-card-wide">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Sessions</p>
-          <h3>Who is doing what</h3>
+          <p className="eyebrow">Recent sessions</p>
+          <h3>Active workstreams</h3>
         </div>
-        <span className="muted-copy">{isLoading ? 'Loading…' : 'Owner-centric view'}</span>
+        <FreshnessStamp updatedAt={data?.updatedAt} isFetching={isLoading} />
       </div>
+
+      {items.length === 0 && !isLoading ? <div className="empty-state">No recent sessions are visible.</div> : null}
 
       <ul className="list">
         {items.map((session) => (
