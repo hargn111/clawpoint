@@ -399,12 +399,15 @@ export function buildPermissionsHardeningSummary({
     tokenSource: channel?.tokenSource || 'none',
     status: channel?.probe?.ok === true ? 'healthy' : channel?.configured ? 'warning' : 'idle',
   }))
-  const profileItems = Object.entries(profiles).map(([id, profile]) => ({
-    id: String(id).replace(/:.+@.+$/, ':account'),
-    provider: profile?.provider || String(id).split(':')[0] || 'unknown',
-    mode: profile?.mode || 'unknown',
-    status: profile?.mode ? 'healthy' : 'warning',
-  }))
+  const profileItems = Object.entries(profiles).map(([id, profile], index) => {
+    const provider = profile?.provider || String(id).split(':')[0] || 'unknown'
+    return {
+      id: `${provider}:account-${index + 1}`,
+      provider,
+      mode: profile?.mode || 'unknown',
+      status: profile?.mode ? 'healthy' : 'warning',
+    }
+  })
   const controlUiInsecureAllowed = gateway.controlUi?.allowInsecureAuth === true
   const mode = authMode(config)
   const bind = gateway.bind || 'default'

@@ -363,6 +363,8 @@ test('buildPermissionsHardeningSummary reports posture without leaking account i
       auth: {
         profiles: {
           'provider:human@example.com': { provider: 'provider', mode: 'oauth', email: 'human@example.com' },
+          'discord:123456789012345678': { provider: 'discord', mode: 'bot' },
+          'telegram:987654321': { mode: 'bot' },
         },
       },
     },
@@ -375,8 +377,14 @@ test('buildPermissionsHardeningSummary reports posture without leaking account i
   assert.equal(summary.tokenMasked, '********1234')
   assert.equal(summary.posture, 'warning')
   assert.equal(summary.gateway.mode, 'token')
-  assert.equal(summary.authProfiles[0].id, 'provider:account')
-  assert.equal(JSON.stringify(summary).includes('human@example.com'), false)
+  assert.deepEqual(
+    summary.authProfiles.map((profile) => profile.id),
+    ['provider:account-1', 'discord:account-2', 'telegram:account-3'],
+  )
+  const serialized = JSON.stringify(summary)
+  assert.equal(serialized.includes('human@example.com'), false)
+  assert.equal(serialized.includes('123456789012345678'), false)
+  assert.equal(serialized.includes('987654321'), false)
   assert.equal(summary.channels[0].status, 'healthy')
   assert.equal(summary.rotationChecklist.find((item) => item.id === 'verify-health').status, 'ready')
 })
