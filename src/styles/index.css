@@ -264,6 +264,7 @@ textarea {
   background: linear-gradient(135deg, color-mix(in srgb, var(--color-primary) 5%, var(--color-surface)), var(--color-surface));
 }
 
+.command-center-checking,
 .command-center-degraded,
 .command-center-offline {
   border-color: color-mix(in srgb, var(--color-warning) 35%, var(--color-border));
@@ -310,6 +311,10 @@ textarea {
   margin-top: 16px;
 }
 
+.status-strip-compact {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .status-tile {
   display: grid;
   gap: 4px;
@@ -318,6 +323,18 @@ textarea {
   border-radius: 12px;
   background: var(--color-surface);
   min-width: 0;
+  text-align: left;
+}
+
+.status-tile-action {
+  cursor: pointer;
+}
+
+.status-tile-action:hover,
+.status-tile-action:focus-visible {
+  border-color: color-mix(in srgb, var(--color-primary) 42%, var(--color-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
+  outline: none;
 }
 
 .status-tile strong {
@@ -359,6 +376,16 @@ textarea {
   background: color-mix(in srgb, var(--color-warning) 8%, var(--color-surface));
 }
 
+.attention-item-notice {
+  border-color: color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-surface));
+}
+
+.attention-item-notice span {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
 .attention-item span {
   display: inline-flex;
   align-items: center;
@@ -375,6 +402,18 @@ textarea {
 
 .attention-item p {
   margin: 0;
+  flex: 1 1 auto;
+}
+
+.inline-action {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .attention-item-clear {
@@ -403,6 +442,11 @@ textarea {
 }
 
 .panel-subheader {
+  align-items: center;
+}
+
+.action-row-inline {
+  margin-top: 12px;
   align-items: center;
 }
 
@@ -544,6 +588,7 @@ textarea {
   border-color: color-mix(in srgb, var(--color-success) 25%, transparent);
 }
 
+.badge-checking,
 .badge-due-soon,
 .badge-waiting {
   background: color-mix(in srgb, var(--color-warning) 18%, transparent);
@@ -622,6 +667,7 @@ textarea {
   gap: 12px;
 }
 
+.button,
 .button-primary {
   display: inline-flex;
   align-items: center;
@@ -635,6 +681,11 @@ textarea {
   cursor: pointer;
 }
 
+.button-danger {
+  background: var(--color-log-error);
+}
+
+.secondary-button,
 .button-secondary {
   display: inline-flex;
   align-items: center;
@@ -648,11 +699,13 @@ textarea {
   cursor: pointer;
 }
 
+.button:disabled,
 .button-primary:disabled {
   opacity: 0.6;
   cursor: default;
 }
 
+.secondary-button:disabled,
 .button-secondary:disabled {
   opacity: 0.6;
   cursor: default;
@@ -874,6 +927,100 @@ textarea {
   margin: 0;
 }
 
+.advanced-config-grid,
+.profile-grid,
+.roadmap-grid,
+.tool-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.advanced-config-card,
+.roadmap-card,
+.profile-card,
+.tool-group-card {
+  min-width: 0;
+}
+
+.advanced-config-card strong,
+.roadmap-card strong,
+.profile-card h4 {
+  overflow-wrap: anywhere;
+}
+
+.warning-copy {
+  color: var(--color-warning);
+}
+
+.roadmap-next-steps {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.profile-card {
+  align-content: start;
+}
+
+.profile-defaults {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 0.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.profile-default-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.profile-default-row code {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.advanced-section-header {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--color-border);
+}
+
+.tool-list-compact {
+  max-height: 420px;
+}
+
+.tool-inventory-item {
+  cursor: default;
+}
+
+.permissions-layout {
+  grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+}
+
+.permissions-effective-card {
+  align-content: start;
+}
+
+.permissions-group-row {
+  margin-top: 12px;
+}
+
+.permissions-channel-card {
+  margin-top: 12px;
+}
+
 .log-stream {
   margin-top: 12px;
   max-height: 560px;
@@ -915,6 +1062,81 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.audit-stream {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  max-height: 560px;
+  overflow: auto;
+}
+
+.audit-row {
+  display: grid;
+  grid-template-columns: 82px 72px minmax(0, 1fr) minmax(180px, 0.55fr);
+  gap: 10px;
+  align-items: start;
+  border-left: 2px solid var(--color-log-info);
+}
+
+.audit-row-warning {
+  border-left-color: var(--color-log-warn);
+}
+
+.audit-row-error {
+  border-left-color: var(--color-log-error);
+}
+
+.audit-row-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.audit-row-main code,
+.audit-row .selector-copy {
+  overflow-wrap: anywhere;
+}
+
+.automation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.automation-card {
+  align-content: start;
+}
+
+.automation-card h4,
+.automation-card code {
+  overflow-wrap: anywhere;
+}
+
+.danger-panel {
+  border-color: color-mix(in srgb, var(--color-log-warn) 35%, var(--color-border));
+}
+
+.danger-confirmation {
+  min-width: min(320px, 100%);
+}
+
+.danger-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.danger-action-card {
+  align-content: start;
+}
+
+.danger-action-card h4,
+.danger-action-card .detail-copy {
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 1040px) {
   .workspace-layout,
   .manager-layout,
@@ -923,7 +1145,14 @@ textarea {
   .status-strip,
   .detail-grid,
   .field-grid-session-settings,
-  .field-grid-two-up {
+  .field-grid-two-up,
+  .advanced-config-grid,
+  .profile-grid,
+  .roadmap-grid,
+  .tool-group-grid,
+  .automation-grid,
+  .danger-action-grid,
+  .permissions-layout {
     grid-template-columns: 1fr;
   }
 
@@ -935,6 +1164,10 @@ textarea {
   }
 
   .log-row {
+    grid-template-columns: 1fr;
+  }
+
+  .audit-row {
     grid-template-columns: 1fr;
   }
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 
 export type WorkspaceTab = {
   id: string
@@ -17,15 +17,40 @@ type WorkspaceTabsProps = {
 }
 
 export function WorkspaceTabs({ tabs, defaultTabId }: WorkspaceTabsProps) {
+  const tabIds = useMemo(() => new Set(tabs.map((tab) => tab.id)), [tabs])
   const initialTab = useMemo(() => {
-    if (defaultTabId && tabs.some((tab) => tab.id === defaultTabId)) {
+    const hashTabId = typeof window !== 'undefined' ? window.location.hash.replace(/^#/, '') : ''
+    if (hashTabId && tabIds.has(hashTabId)) {
+      return hashTabId
+    }
+    if (defaultTabId && tabIds.has(defaultTabId)) {
       return defaultTabId
     }
     return tabs[0]?.id ?? ''
-  }, [defaultTabId, tabs])
+  }, [defaultTabId, tabIds, tabs])
 
   const [activeTabId, setActiveTabId] = useState(initialTab)
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0]
+
+  useEffect(() => {
+    function syncTabFromHash() {
+      const hashTabId = window.location.hash.replace(/^#/, '')
+      if (hashTabId && tabIds.has(hashTabId)) {
+        setActiveTabId(hashTabId)
+      }
+    }
+
+    syncTabFromHash()
+    window.addEventListener('hashchange', syncTabFromHash)
+    return () => window.removeEventListener('hashchange', syncTabFromHash)
+  }, [tabIds])
+
+  function selectTab(tabId: string) {
+    setActiveTabId(tabId)
+    if (typeof window !== 'undefined') {
+      window.location.hash = tabId
+    }
+  }
 
   const groupedTabs = useMemo(() => {
     const groups = new Map<string, WorkspaceTab[]>()
@@ -63,7 +88,7 @@ export function WorkspaceTabs({ tabs, defaultTabId }: WorkspaceTabsProps) {
                     role="tab"
                     aria-selected={selected}
                     className={`workspace-tab ${selected ? 'workspace-tab-active' : ''}`}
-                    onClick={() => setActiveTabId(tab.id)}
+                    onClick={() => selectTab(tab.id)}
                     title={tab.description}
                   >
                     <span className="workspace-tab-main">

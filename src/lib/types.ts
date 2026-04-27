@@ -165,5 +165,252 @@ export type PermissionsSummary = {
   gatewayUrl: string
   tokenConfigured: boolean
   tokenMasked: string
+  posture: 'healthy' | 'warning' | 'error'
+  gateway: {
+    mode: string
+    bind: string
+    reachable: boolean
+    tailscaleMode: string
+    controlUiInsecureAllowed: boolean
+    nodeDenyCommandCount: number
+  }
+  counts: {
+    checks: number
+    warnings: number
+    errors: number
+    authProfiles: number
+    channels: number
+  }
+  checks: Array<{
+    id: string
+    label: string
+    status: 'healthy' | 'warning' | 'error'
+    detail: string
+    action: string
+  }>
+  authProfiles: Array<{
+    id: string
+    provider: string
+    mode: string
+    status: 'healthy' | 'warning' | 'idle'
+  }>
+  channels: Array<{
+    id: string
+    label: string
+    configured: boolean
+    running: boolean
+    probeOk: boolean
+    tokenSource: string
+    status: 'healthy' | 'warning' | 'idle'
+  }>
+  rotationChecklist: Array<{
+    id: string
+    label: string
+    status: 'manual' | 'ready' | 'blocked'
+  }>
+  notes: string[]
+}
+
+export type EffectiveConfigItem = {
+  key: string
+  label: string
+  value: string
+  source: string
+  status: 'healthy' | 'warning' | 'idle'
+  sensitive?: boolean
+}
+
+export type EffectiveConfigSummary = {
+  updatedAt: string
+  readOnly: boolean
+  items: EffectiveConfigItem[]
+  notes: string[]
+}
+
+export type ModelProfile = {
+  id: string
+  name: string
+  purpose: string
+  model: string
+  modelSource: string
+  thinking: 'off' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
+  verbose: 'off' | 'on'
+  reasoning: 'off' | 'on' | 'stream'
+  contextBudget: 'standard' | 'high' | 'large'
+  launchLabel: string
+  available: boolean
+}
+
+export type ModelProfileList = {
+  updatedAt: string
+  items: ModelProfile[]
+  notes: string[]
+}
+
+export type AdvancedRoadmapItem = {
+  id: string
+  title: string
+  summary: string
+  status: 'implemented' | 'partial' | 'next' | 'planned' | 'later'
+  nextSteps: string[]
+  blockedBy?: string
+}
+
+export type AdvancedRoadmap = {
+  updatedAt: string
+  items: AdvancedRoadmapItem[]
+}
+
+export type ChangeAuditEvent = {
+  id: string
+  timestamp: string
+  action: string
+  target: string
+  actor: string
+  level: 'info' | 'warning' | 'error'
+  summary: string
+  metadata: Record<string, string | number | boolean | null>
+}
+
+export type ChangeAuditLog = {
+  updatedAt: string
+  retention: string
+  counts: {
+    total: number
+    info: number
+    warning: number
+    error: number
+  }
+  items: ChangeAuditEvent[]
+  notes: string[]
+}
+
+export type AutomationJob = {
+  id: string
+  name: string
+  description: string
+  enabled: boolean
+  scheduleKind: string
+  scheduleLabel: string
+  sessionTarget: string
+  payloadKind: string
+  deliveryMode: string
+  nextRunAt: string | null
+  lastRunAt: string | null
+  lastRunStatus: string
+  lastDurationMs: number | null
+  consecutiveErrors: number
+  health: 'healthy' | 'warning' | 'idle'
+}
+
+export type AutomationInspector = {
+  updatedAt: string
+  scheduler: {
+    enabled: boolean
+    running: boolean
+    status: 'healthy' | 'warning'
+  }
+  counts: {
+    total: number
+    enabled: number
+    disabled: number
+    warning: number
+  }
+  items: AutomationJob[]
+  notes: string[]
+}
+
+export type DangerZoneSummary = {
+  updatedAt: string
+  posture: 'guarded'
+  confirmationPhrase: string
+  release: string
+  checks: Array<{
+    id: string
+    label: string
+    status: 'healthy' | 'warning' | 'error'
+    detail: string
+  }>
+  actions: Array<{
+    id: 'export-diagnostics' | 'clear-volatile-state' | 'restart-dashboard'
+    label: string
+    blastRadius: string
+    confirmationRequired: boolean
+  }>
+  unavailableActions: string[]
+  notes: string[]
+}
+
+export type ToolInventoryTool = {
+  id: string
+  label: string
+  source: string
+  description: string
+}
+
+export type ToolInventoryGroup = {
+  id: string
+  label: string
+  source: string
+  tools: ToolInventoryTool[]
+}
+
+export type PluginInventoryItem = {
+  id: string
+  enabled: boolean
+  status: 'healthy' | 'warning' | 'idle'
+  hasConfig: boolean
+  configKeys: string[]
+}
+
+export type McpServerInventoryItem = {
+  id: string
+  transport: string
+  status: 'healthy' | 'warning' | 'idle'
+  command?: string
+  urlHost?: string
+}
+
+export type ToolInventory = {
+  updatedAt: string
+  sessionKey: string
+  profile: string
+  counts: {
+    groups: number
+    tools: number
+    plugins: number
+    mcpServers: number
+  }
+  toolsConfig: {
+    profile: string
+    webSearch: string
+    elevated: string
+  }
+  plugins: PluginInventoryItem[]
+  mcpServers: McpServerInventoryItem[]
+  groups: ToolInventoryGroup[]
+  notes: string[]
+}
+
+export type SessionPermissionItem = {
+  key: string
+  id: string
+  label: string
+  state: string
+  model: string
+  toolsAllow: string[] | null
+}
+
+export type SessionPermissionSummary = {
+  updatedAt: string
+  selectedKey: string
+  patchSupportsToolsAllow: boolean
+  sessions: SessionPermissionItem[]
+  effective: {
+    profile: string
+    toolCount: number
+    groupCount: number
+    groupLabels: string[]
+  } | null
   notes: string[]
 }
