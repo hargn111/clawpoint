@@ -1,12 +1,17 @@
 import { useMemo } from 'react'
 import { DashboardShell } from '../components/layout/DashboardShell'
-import { PlaceholderPanel } from '../components/common/PlaceholderPanel'
 import { WorkspaceTabs, type WorkspaceTab } from '../components/navigation/WorkspaceTabs'
+import { AdvancedRoadmapPanel } from '../features/advanced/components/AdvancedRoadmapPanel'
+import { AutomationInspectorPanel } from '../features/advanced/components/AutomationInspectorPanel'
+import { ChangeAuditLogPanel } from '../features/advanced/components/ChangeAuditLogPanel'
+import { DangerZonePanel } from '../features/advanced/components/DangerZonePanel'
+import { EffectiveConfigPanel } from '../features/advanced/components/EffectiveConfigPanel'
+import { ModelProfilesPanel } from '../features/advanced/components/ModelProfilesPanel'
+import { SessionPermissionsPanel } from '../features/advanced/components/SessionPermissionsPanel'
+import { ToolInventoryPanel } from '../features/advanced/components/ToolInventoryPanel'
 import { GatewayHealthCard } from '../features/health/components/GatewayHealthCard'
 import { LogsEventsPanel } from '../features/logs/components/LogsEventsPanel'
-import { PlatformWatchCard } from '../features/overview/components/PlatformWatchCard'
 import { AttentionOverviewPanel } from '../features/overview/components/AttentionOverviewPanel'
-import { OverviewSummaryPanel } from '../features/overview/components/OverviewSummaryPanel'
 import { PermissionsPanel } from '../features/permissions/components/PermissionsPanel'
 import { ReminderQueueCard } from '../features/reminders/components/ReminderQueueCard'
 import { SessionManagerCard } from '../features/sessions/components/SessionManagerCard'
@@ -31,10 +36,6 @@ export function App() {
         content: (
           <div className="workspace-stack">
             <AttentionOverviewPanel />
-            <OverviewSummaryPanel />
-            <GatewayHealthCard />
-            <SessionOverviewCard />
-            <PlatformWatchCard />
           </div>
         ),
       },
@@ -89,48 +90,90 @@ export function App() {
 
     orderedTabs.push(
       {
-        id: 'model-config',
-        label: 'Model Config',
+        id: 'model-profiles',
+        label: 'Model Profiles',
         group: 'Advanced',
         icon: '⌘',
-        eyebrow: 'Model Config',
-        title: 'Model Config',
-        description: 'Draft surface for default model, thinking, and token-budget controls.',
+        eyebrow: 'Model Profiles',
+        title: 'Model Profiles',
+        description: 'Launch-ready session presets for fast, careful, coding, and long-context work.',
         content: (
-          <PlaceholderPanel
-            eyebrow="Model Config"
-            title="Model defaults are next"
-            body="This needs real gateway-backed config mutation before it should become editable. For now the dashboard keeps the shape visible without pretending the backend is ready."
-            bullets={[
-              'Default model selection and session-type ceilings should land here.',
-              'Thinking defaults and token budget bars should be gateway-backed, not local-only UI state.',
-              'System prompt editing needs a real config write path before it becomes safe.',
-            ]}
-            cliHints={['openclaw models', '--thinking', 'agents.defaults.contextTokens']}
-          />
+          <div className="workspace-stack">
+            <ModelProfilesPanel />
+          </div>
+        ),
+      },
+      {
+        id: 'effective-config',
+        label: 'Effective Config',
+        group: 'Advanced',
+        icon: '◈',
+        eyebrow: 'Effective Config',
+        title: 'Effective Config',
+        description: 'Read-only runtime config with safe values, source labels, and edit-safety notes.',
+        content: (
+          <div className="workspace-stack">
+            <EffectiveConfigPanel />
+          </div>
         ),
       },
       {
         id: 'mcp-servers',
-        label: 'MCP Servers',
+        label: 'Tool Inventory',
         group: 'Advanced',
         icon: '⌗',
-        eyebrow: 'MCP Servers',
-        title: 'MCP Servers',
-        description: 'Placeholder for live MCP routing, tool inspection, and per-session overrides.',
+        eyebrow: 'MCP / Tool Inventory',
+        title: 'MCP / Tool Inventory',
+        description: 'Effective runtime tools, plugin inventory, MCP server metadata, and safe config policy.',
         content: (
-          <PlaceholderPanel
-            eyebrow="MCP Servers"
-            title="MCP routing needs backend inventory"
-            body="The useful next step is to expose configured servers and live status from OpenClaw first, then layer enable/disable and tool testing on top."
-            bullets={[
-              'Server inventory and status should come from the gateway, not handwritten config snapshots.',
-              'Per-session server allowlists belong next to session creation and patch flows.',
-              'Inline tool testing makes sense once schemas are available over an API route.',
-            ]}
-            cliHints={['openclaw mcp', 'plugins.entries', 'sessions.patch']}
-          />
+          <div className="workspace-stack">
+            <ToolInventoryPanel />
+          </div>
         ),
+      },
+      {
+        id: 'session-permissions',
+        label: 'Session Permissions',
+        group: 'Advanced',
+        icon: '◇',
+        eyebrow: 'Session Permissions',
+        title: 'Session Permissions',
+        description: 'Read-only effective tool access by session, with gateway limitations called out clearly.',
+        content: (
+          <div className="workspace-stack">
+            <SessionPermissionsPanel />
+          </div>
+        ),
+      },
+      {
+        id: 'change-audit-log',
+        label: 'Change Audit Log',
+        group: 'Advanced',
+        icon: '≣',
+        eyebrow: 'Change Audit Log',
+        title: 'Change Audit Log',
+        description: 'Dashboard write audit trail for sessions and Task Garden without sensitive content.',
+        content: <ChangeAuditLogPanel />,
+      },
+      {
+        id: 'automation-inspector',
+        label: 'Automation Inspector',
+        group: 'Advanced',
+        icon: '↻',
+        eyebrow: 'Automation Inspector',
+        title: 'Automation Inspector',
+        description: 'Cron jobs, next/last run state, failures, and guarded job controls.',
+        content: <AutomationInspectorPanel />,
+      },
+      {
+        id: 'danger-zone',
+        label: 'Danger Zone',
+        group: 'Advanced',
+        icon: '⚠',
+        eyebrow: 'Danger Zone',
+        title: 'Danger Zone',
+        description: 'Guarded restart, diagnostics, volatile-state clearing, and local cache controls.',
+        content: <DangerZonePanel />,
       },
       {
         id: 'logs-events',
@@ -151,6 +194,16 @@ export function App() {
         title: 'Permissions & Auth',
         description: 'Current gateway auth summary and the next controls worth wiring.',
         content: <PermissionsPanel />,
+      },
+      {
+        id: 'advanced-roadmap',
+        label: 'Roadmap',
+        group: 'Advanced',
+        icon: '□',
+        eyebrow: 'Advanced Roadmap',
+        title: 'Advanced Roadmap',
+        description: 'The next six Advanced implementations after profiles and effective config.',
+        content: <AdvancedRoadmapPanel />,
       },
     )
 

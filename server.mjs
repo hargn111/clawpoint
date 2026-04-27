@@ -2,10 +2,22 @@ import http from 'node:http'
 import { readFile, writeFile } from 'node:fs/promises'
 import { createReadStream, existsSync } from 'node:fs'
 import { execFile as execFileCallback } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { promisify } from 'node:util'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { randomUUID } from 'node:crypto'
+import {
+  advancedRoadmapItems,
+  buildAutomationInspector,
+  buildDangerZoneSummary,
+  buildEffectiveConfigSummary,
+  buildChangeAuditLog,
+  buildModelProfiles,
+  buildPermissionsHardeningSummary,
+  buildSessionPermissionSummary,
+  buildToolInventory,
+} from './server/advanced-data.mjs'
 import {
   buildGatewayHealth,
   buildReminderQueue,
@@ -28,12 +40,14 @@ const SESSIONS_PATH = process.env.SESSIONS_PATH || '/root/.openclaw/agents/main/
 const GATEWAY_BASE_URL = process.env.GATEWAY_BASE_URL || 'http://127.0.0.1:18789'
 const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || ''
 const OPENCLAW_PACKAGE_JSON = process.env.OPENCLAW_PACKAGE_JSON || '/usr/lib/node_modules/openclaw/package.json'
+const OPENCLAW_CONFIG_PATH = process.env.OPENCLAW_CONFIG_PATH || '/root/.openclaw/openclaw.json'
 
 const host = process.env.HOST || '127.0.0.1'
 const port = Number(process.env.PORT || 4176)
 const execFile = promisify(execFileCallback)
 const serverStartedAt = Date.now()
 const requestEvents = []
+const auditEvents = []
 
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload)
@@ -96,6 +110,28 @@ function recordRequestEvent(method, pathname, status, durationMs) {
   }
 }
 
+function recordAuditEvent({ action, target, level = 'info', summary, metadata = {} }) {
+  const safeMetadata = Object.fromEntries(
+    Object.entries(metadata).filter(([key, value]) => {
+      if (/token|secret|password|key|message|note|body/i.test(key)) return false
+      return ['string', 'number', 'boolean'].includes(typeof value) || value == null
+    }),
+  )
+  auditEvents.push({
+    id: randomUUID().slice(0, 8),
+    timestamp: new Date().toISOString(),
+    actor: 'dashboard',
+    action,
+    target,
+    level,
+    summary,
+    metadata: safeMetadata,
+  })
+  if (auditEvents.length > 250) {
+    auditEvents.splice(0, auditEvents.length - 250)
+  }
+}
+
 function requestMetricsSnapshot(now = Date.now()) {
   const lastMinute = requestEvents.filter((event) => now - new Date(event.timestamp).getTime() <= 60_000)
   const latencies = requestEvents.slice(-24).map((event) => event.durationMs)
@@ -130,10 +166,11 @@ async function readJsonBody(req) {
 
 async function gatewayReachable() {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 3000)
+  const timeout = setTimeout(() => controller.abort(), 900)
   try {
-    const response = await fetch(`${GATEWAY_BASE_URL}/`, {
+    const response = await fetch(`${GATEWAY_BASE_URL}/healthz`, {
       signal: controller.signal,
+      headers: { Accept: 'application/json' },
     })
     return response.ok
   } catch {
@@ -223,6 +260,201 @@ async function loadSessionModelOptions() {
   }
 }
 
+async function loadOpenClawConfig() {
+  try {
+    const raw = await readFile(OPENCLAW_CONFIG_PATH, 'utf8')
+    return { config: JSON.parse(raw), loaded: true }
+  } catch {
+    return { config: null, loaded: false }
+  }
+}
+
+async function loadGatewayConfig() {
+  if (!GATEWAY_TOKEN) return null
+  const payload = await gatewayCall('config.get', {})
+  return payload.config || payload.parsed || payload.runtimeConfig || null
+}
+
+async function loadBestAvailableConfig() {
+  const gatewayConfig = await loadGatewayConfig().catch(() => null)
+  if (gatewayConfig) return { config: gatewayConfig, loaded: true, source: 'gateway config.get' }
+  const local = await loadOpenClawConfig()
+  return { config: local.config, loaded: local.loaded, source: local.loaded ? 'local config file' : 'unavailable' }
+}
+
+async function advancedConfigSummary() {
+  const [{ config, loaded }, openclawVersion, sessionModels] = await Promise.all([
+    loadBestAvailableConfig(),
+    detectOpenClawVersion(OPENCLAW_PACKAGE_JSON),
+    loadSessionModelOptions().catch(() => ({ items: [] })),
+  ])
+
+  return buildEffectiveConfigSummary({
+    config,
+    configPath: OPENCLAW_CONFIG_PATH,
+    configLoaded: loaded,
+    openclawVersion,
+    gatewayBaseUrl: GATEWAY_BASE_URL,
+    gatewayTokenConfigured: Boolean(GATEWAY_TOKEN),
+    todosPath: TODOS_PATH,
+    sessionsPath: SESSIONS_PATH,
+    packageJsonPath: OPENCLAW_PACKAGE_JSON,
+    runtimeModelCount: sessionModels.items.length,
+    runtimeModelSource: sessionModels.items.length ? 'gateway models.list' : null,
+  })
+}
+
+async function advancedModelProfiles() {
+  const { config } = await loadBestAvailableConfig()
+  const sessionModels = await loadSessionModelOptions().catch(() => ({ items: [] }))
+  return buildModelProfiles({ config, runtimeModels: sessionModels.items })
+}
+
+async function advancedToolInventory(sessionKey = 'agent:main:main') {
+  const [{ config }, effectiveTools] = await Promise.all([
+    loadBestAvailableConfig(),
+    GATEWAY_TOKEN ? gatewayCall('tools.effective', { sessionKey }).catch(() => null) : Promise.resolve(null),
+  ])
+  return buildToolInventory({ config, effectiveTools, sessionKey })
+}
+
+async function advancedSessionPermissions(sessionKey = '') {
+  const sessions = await loadSessionsFromGateway().catch(() => [])
+  const selectedKey = sessionKey || sessions[0]?.key || 'agent:main:main'
+  const inventory = selectedKey ? await advancedToolInventory(selectedKey).catch(() => null) : null
+  return buildSessionPermissionSummary({
+    sessions,
+    selectedKey,
+    inventory,
+    patchSupportsToolsAllow: false,
+  })
+}
+
+async function advancedRoadmap() {
+  return {
+    updatedAt: new Date().toISOString(),
+    items: advancedRoadmapItems(),
+  }
+}
+
+async function advancedChangeAuditLog() {
+  return buildChangeAuditLog({ events: auditEvents })
+}
+
+async function advancedAutomationInspector() {
+  if (!GATEWAY_TOKEN) {
+    return buildAutomationInspector({
+      status: { enabled: false, running: false },
+      jobs: [],
+    })
+  }
+  const [status, list] = await Promise.all([
+    gatewayCall('cron.status', {}).catch(() => null),
+    gatewayCall('cron.list', { includeDisabled: true }).catch(() => ({ jobs: [] })),
+  ])
+  return buildAutomationInspector({ status, jobs: list?.jobs ?? [] })
+}
+
+async function updateAutomationJob(id, action) {
+  if (action === 'enable' || action === 'disable') {
+    await gatewayCall('cron.update', { id, patch: { enabled: action === 'enable' } })
+    recordAuditEvent({
+      action: `cron.${action}`,
+      target: id,
+      summary: action === 'enable' ? 'Enabled a cron job from the dashboard.' : 'Disabled a cron job from the dashboard.',
+      metadata: { enabled: action === 'enable' },
+    })
+    return { ok: true }
+  }
+  if (action === 'run-now') {
+    await gatewayCall('cron.run', { id, runMode: 'force' })
+    recordAuditEvent({
+      action: 'cron.run-now',
+      target: id,
+      summary: 'Triggered a cron job run from the dashboard.',
+      metadata: { runMode: 'force' },
+    })
+    return { ok: true }
+  }
+  throw new Error(`Unsupported automation action: ${action}`)
+}
+
+async function advancedDangerZoneSummary() {
+  const [{ loaded }, reachable] = await Promise.all([loadBestAvailableConfig(), gatewayReachable()])
+  return buildDangerZoneSummary({
+    gatewayReachable: reachable,
+    configLoaded: loaded,
+    release: __dirname,
+  })
+}
+
+async function dangerDiagnostics() {
+  const [meta, health, roadmap, automation, permissions] = await Promise.all([
+    buildMetaPayload().catch((error) => ({ error: String(error?.message || error) })),
+    buildGatewayHealthPayload().catch((error) => ({ error: String(error?.message || error) })),
+    advancedRoadmap().catch((error) => ({ error: String(error?.message || error) })),
+    advancedAutomationInspector().catch((error) => ({ error: String(error?.message || error) })),
+    permissionsSummary().catch((error) => ({ error: String(error?.message || error) })),
+  ])
+  return {
+    exportedAt: new Date().toISOString(),
+    release: __dirname,
+    meta,
+    health,
+    roadmap,
+    automation,
+    permissions,
+    notes: ['Diagnostic export omits raw config, payload bodies, delivery destinations, tokens, and secrets.'],
+  }
+}
+
+async function runDangerAction(action, body = {}) {
+  if (action === 'export-diagnostics') {
+    recordAuditEvent({
+      action: 'danger.export-diagnostics',
+      target: 'clawpoint-dev',
+      summary: 'Exported dashboard diagnostics.',
+      metadata: { release: __dirname },
+    })
+    return dangerDiagnostics()
+  }
+
+  if (body.confirmation !== 'I UNDERSTAND') {
+    const error = new Error('Confirmation phrase is required.')
+    error.statusCode = 400
+    throw error
+  }
+
+  if (action === 'clear-volatile-state') {
+    requestEvents.splice(0, requestEvents.length)
+    auditEvents.splice(0, auditEvents.length)
+    recordAuditEvent({
+      action: 'danger.clear-volatile-state',
+      target: 'clawpoint-dev',
+      summary: 'Cleared in-memory dashboard API and audit buffers.',
+      metadata: { release: __dirname },
+    })
+    return { ok: true }
+  }
+
+  if (action === 'restart-dashboard') {
+    recordAuditEvent({
+      action: 'danger.restart-dashboard',
+      target: 'clawpoint-dev.service',
+      summary: 'Requested Clawpoint dev service restart from Danger Zone.',
+      metadata: { release: __dirname },
+    })
+    const child = spawn('bash', ['-lc', 'sleep 1; systemctl --user restart clawpoint-dev.service'], {
+      detached: true,
+      stdio: 'ignore',
+    })
+    child.unref()
+    return { ok: true, restarting: true }
+  }
+
+  throw new Error(`Unsupported danger action: ${action}`)
+}
+
 function dashboardMeta(todosAvailable, now = new Date()) {
   return {
     updatedAt: now.toISOString(),
@@ -234,8 +466,25 @@ function dashboardMeta(todosAvailable, now = new Date()) {
   }
 }
 
+async function loadSessionsForSnapshot() {
+  try {
+    const storeSessions = await loadSessionsFromStore()
+    if (storeSessions.length) return storeSessions
+  } catch {
+    // The dev dashboard often runs as an unprivileged user; root-owned session
+    // files may not be readable there. Fall through to a bounded gateway lookup.
+  }
+
+  if (!GATEWAY_TOKEN) return []
+
+  return Promise.race([
+    loadSessionsFromGateway().catch(() => []),
+    new Promise((resolve) => setTimeout(() => resolve([]), 750)),
+  ])
+}
+
 async function buildDashboardSnapshot() {
-  const [sessions, todosState, reachable] = await Promise.all([loadSessionsFromGateway(), loadTodos(), gatewayReachable()])
+  const [sessions, todosState, reachable] = await Promise.all([loadSessionsForSnapshot(), loadTodos(), gatewayReachable()])
   return createDashboardSnapshot({
     sessions,
     todosAvailable: todosState.available,
@@ -260,7 +509,14 @@ async function buildReminderPayload() {
 }
 
 async function buildGatewayHealthPayload() {
-  const [sessions, reachable] = await Promise.all([loadSessionsFromGateway(), gatewayReachable()])
+  const reachable = await gatewayReachable()
+  let sessions = []
+  try {
+    sessions = await loadSessionsFromStore()
+  } catch {
+    sessions = []
+  }
+
   const payload = buildGatewayHealth(sessions, reachable)
   const metrics = requestMetricsSnapshot()
   payload.data = {
@@ -311,6 +567,12 @@ async function createTaskgardenTask(input) {
     last_reminder_at: null,
   }
   await saveTodos([...todosState.items, item])
+  recordAuditEvent({
+    action: 'task.create',
+    target: item.id,
+    summary: 'Created a Task Garden task.',
+    metadata: { bucket: item.bucket, remindIntervalHours: item.remind_interval_hours },
+  })
   return item
 }
 
@@ -342,6 +604,12 @@ async function updateTaskgardenTask(id, input) {
   }
 
   await saveTodos(todosState.items)
+  recordAuditEvent({
+    action: 'task.update',
+    target: id,
+    summary: 'Updated a Task Garden task.',
+    metadata: { status: current.status, bucket: current.bucket, reminderConfigured: current.remind_interval_hours != null },
+  })
   return current
 }
 
@@ -384,7 +652,20 @@ async function patchSessionSettings(key, input) {
   if ('thinking' in input && input.thinking) payload.thinkingLevel = input.thinking
   if ('verbose' in input && input.verbose) payload.verboseLevel = input.verbose
   if ('reasoning' in input && input.reasoning) payload.reasoningLevel = input.reasoning
-  return gatewayCall('sessions.patch', payload)
+  const result = await gatewayCall('sessions.patch', payload)
+  recordAuditEvent({
+    action: 'session.patch',
+    target: key,
+    summary: 'Updated session settings.',
+    metadata: {
+      labelChanged: 'label' in input,
+      modelChanged: 'model' in input,
+      thinking: input.thinking,
+      verbose: input.verbose,
+      reasoning: input.reasoning,
+    },
+  })
+  return result
 }
 
 async function sendMessageToSession(key, input) {
@@ -394,7 +675,14 @@ async function sendMessageToSession(key, input) {
   }
   if (input.channel?.trim()) payload.channel = input.channel.trim()
   if (input.thinking && input.thinking !== 'off') payload.thinking = input.thinking
-  return gatewayCall('sessions.send', payload)
+  const result = await gatewayCall('sessions.send', payload)
+  recordAuditEvent({
+    action: 'session.message',
+    target: key,
+    summary: 'Sent a dashboard-authored message to a session.',
+    metadata: { channel: input.channel?.trim() || 'default', thinking: input.thinking || 'default' },
+  })
+  return result
 }
 
 async function createSession(input) {
@@ -413,10 +701,39 @@ async function createSession(input) {
     })
   }
 
+  recordAuditEvent({
+    action: 'session.create',
+    target: key,
+    summary: 'Created a session from the dashboard.',
+    metadata: { sessionId, hasInitialMessage: Boolean(input.message?.trim()), model: input.model || 'default' },
+  })
+
   return { ok: true, sessionId, key }
 }
 
 async function permissionsSummary() {
+  const [{ config }, reachable, health] = await Promise.all([
+    loadBestAvailableConfig(),
+    gatewayReachable(),
+    GATEWAY_TOKEN
+      ? Promise.race([
+          gatewayCall('health', {}).catch(() => null),
+          new Promise((resolve) => setTimeout(() => resolve(null), 3000)),
+        ])
+      : Promise.resolve(null),
+  ])
+
+  return buildPermissionsHardeningSummary({
+    config,
+    gatewayUrl: GATEWAY_BASE_URL,
+    gatewayTokenConfigured: Boolean(GATEWAY_TOKEN),
+    tokenMasked: maskedToken(GATEWAY_TOKEN),
+    reachable,
+    health,
+  })
+}
+
+async function legacyPermissionsSummary() {
   return {
     updatedAt: new Date().toISOString(),
     gatewayUrl: GATEWAY_BASE_URL,
@@ -565,9 +882,73 @@ const server = http.createServer(async (req, res) => {
       return
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/advanced/effective-config') {
+      sendJson(res, 200, await advancedConfigSummary())
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/model-profiles') {
+      sendJson(res, 200, await advancedModelProfiles())
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/tool-inventory') {
+      sendJson(res, 200, await advancedToolInventory(url.searchParams.get('sessionKey') || 'agent:main:main'))
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/session-permissions') {
+      sendJson(res, 200, await advancedSessionPermissions(url.searchParams.get('sessionKey') || ''))
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/roadmap') {
+      sendJson(res, 200, await advancedRoadmap())
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/change-audit-log') {
+      sendJson(res, 200, await advancedChangeAuditLog())
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/automation-inspector') {
+      sendJson(res, 200, await advancedAutomationInspector())
+      return
+    }
+
+    if (req.method === 'POST' && url.pathname.startsWith('/api/advanced/automation-inspector/')) {
+      const parts = url.pathname.split('/').filter(Boolean)
+      const id = decodeURIComponent(parts[3] || '')
+      const action = parts[4]
+      if (!id || !action) {
+        sendJson(res, 400, { error: 'Automation job id and action are required.' })
+        return
+      }
+      sendJson(res, 200, await updateAutomationJob(id, action))
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/danger-zone') {
+      sendJson(res, 200, await advancedDangerZoneSummary())
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/danger-zone/diagnostics') {
+      sendJson(res, 200, await runDangerAction('export-diagnostics'))
+      return
+    }
+
+    if (req.method === 'POST' && url.pathname.startsWith('/api/advanced/danger-zone/')) {
+      const action = url.pathname.split('/').filter(Boolean)[3]
+      const body = await readJsonBody(req)
+      sendJson(res, 200, await runDangerAction(action, body))
+      return
+    }
+
     await serveStatic(req, res)
   } catch (error) {
-    sendJson(res, 500, {
+    sendJson(res, error?.statusCode && Number.isInteger(error.statusCode) ? error.statusCode : 500, {
       error: error instanceof Error ? error.message : String(error),
     })
   }

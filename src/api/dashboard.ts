@@ -1,9 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  AdvancedRoadmap,
+  AutomationInspector,
+  ChangeAuditLog,
+  DangerZoneSummary,
   DashboardMeta,
+  EffectiveConfigSummary,
   GatewayHealth,
   LoadState,
   LogEventList,
+  ModelProfileList,
   PermissionsSummary,
   ReminderItem,
   SessionAdminList,
@@ -11,11 +17,13 @@ import type {
   SessionItem,
   SessionMessageInput,
   SessionModelList,
+  SessionPermissionSummary,
   SessionUpdateInput,
   TaskgardenTask,
   TaskgardenTaskCreateInput,
   TaskgardenTaskList,
   TaskgardenTaskUpdateInput,
+  ToolInventory,
 } from '../lib/types'
 
 async function getJson<T>(url: string): Promise<T> {
@@ -97,6 +105,97 @@ export function usePermissionsSummary() {
     queryKey: ['permissions-summary'],
     queryFn: () => getJson<PermissionsSummary>('/api/permissions/summary'),
     refetchInterval: 30_000,
+  })
+}
+
+export function useEffectiveConfigSummary() {
+  return useQuery({
+    queryKey: ['effective-config-summary'],
+    queryFn: () => getJson<EffectiveConfigSummary>('/api/advanced/effective-config'),
+    refetchInterval: 30_000,
+  })
+}
+
+export function useModelProfiles() {
+  return useQuery({
+    queryKey: ['model-profiles'],
+    queryFn: () => getJson<ModelProfileList>('/api/advanced/model-profiles'),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useToolInventory(sessionKey = 'agent:main:main') {
+  return useQuery({
+    queryKey: ['tool-inventory', sessionKey],
+    queryFn: () => getJson<ToolInventory>(`/api/advanced/tool-inventory?sessionKey=${encodeURIComponent(sessionKey)}`),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useSessionPermissions(sessionKey = '') {
+  return useQuery({
+    queryKey: ['session-permissions', sessionKey],
+    queryFn: () => getJson<SessionPermissionSummary>(`/api/advanced/session-permissions?sessionKey=${encodeURIComponent(sessionKey)}`),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useAdvancedRoadmap() {
+  return useQuery({
+    queryKey: ['advanced-roadmap'],
+    queryFn: () => getJson<AdvancedRoadmap>('/api/advanced/roadmap'),
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useChangeAuditLog() {
+  return useQuery({
+    queryKey: ['change-audit-log'],
+    queryFn: () => getJson<ChangeAuditLog>('/api/advanced/change-audit-log'),
+    refetchInterval: 10_000,
+  })
+}
+
+export function useAutomationInspector() {
+  return useQuery({
+    queryKey: ['automation-inspector'],
+    queryFn: () => getJson<AutomationInspector>('/api/advanced/automation-inspector'),
+    refetchInterval: 15_000,
+  })
+}
+
+export function useAutomationJobAction() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, action }: { id: string; action: 'enable' | 'disable' | 'run-now' }) =>
+      sendJson<{ ok: true }>(`/api/advanced/automation-inspector/${encodeURIComponent(id)}/${action}`, 'POST'),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['automation-inspector'] })
+      void queryClient.invalidateQueries({ queryKey: ['change-audit-log'] })
+    },
+  })
+}
+
+export function useDangerZoneSummary() {
+  return useQuery({
+    queryKey: ['danger-zone'],
+    queryFn: () => getJson<DangerZoneSummary>('/api/advanced/danger-zone'),
+    refetchInterval: 30_000,
+  })
+}
+
+export function useDangerZoneAction() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ action, confirmation }: { action: string; confirmation?: string }) =>
+      sendJson<unknown>(`/api/advanced/danger-zone/${action}`, 'POST', { confirmation }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['danger-zone'] })
+      void queryClient.invalidateQueries({ queryKey: ['change-audit-log'] })
+      void queryClient.invalidateQueries({ queryKey: ['logs-events'] })
+    },
   })
 }
 
