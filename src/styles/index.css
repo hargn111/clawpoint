@@ -950,6 +950,20 @@ textarea {
   overflow-wrap: anywhere;
 }
 
+.warning-copy {
+  color: var(--color-warning);
+}
+
+.roadmap-next-steps {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: var(--color-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
 .profile-card {
   align-content: start;
 }

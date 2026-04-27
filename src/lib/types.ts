@@ -252,6 +252,8 @@ export type AdvancedRoadmapItem = {
   title: string
   summary: string
   status: 'implemented' | 'partial' | 'next' | 'planned' | 'later'
+  nextSteps: string[]
+  blockedBy?: string
 }
 
 export type AdvancedRoadmap = {

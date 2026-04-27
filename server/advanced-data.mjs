@@ -685,36 +685,62 @@ export function advancedRoadmapItems() {
       title: 'MCP / Tool Inventory',
       summary: 'List configured MCP/tool servers, reachability, available tools, schemas, and safe test calls.',
       status: 'implemented',
+      nextSteps: [
+        'Add a schema/detail drawer for one selected tool without exposing full secret-bearing config.',
+        'Layer in read-only reachability probes for MCP endpoints that have safe health checks.',
+      ],
     },
     {
       id: 'per-session-permissions',
       title: 'Per-Session Tool Permissions',
       summary: 'Read effective tools per selected session now; writable allow/deny controls wait on sessions.patch toolsAllow support.',
       status: 'partial',
+      nextSteps: [
+        'Upstream OpenClaw: persist toolsAllow on sessions.patch and include it in sessions.list/detail responses.',
+        'Expose a tools.effective endpoint that resolves agent defaults, session overrides, payload overrides, and channel restrictions.',
+        'After upstream support lands, add Clawpoint edit controls with diff preview, audit logging, and rollback copy.',
+      ],
+      blockedBy: 'OpenClaw gateway does not yet persist or enforce session-scoped toolsAllow overrides.',
     },
     {
       id: 'auth-hardening',
       title: 'Permissions & Auth Hardening',
       summary: 'Add rotation checklists, scoped auth visibility, and safer gateway auth diagnostics without exposing secrets.',
       status: 'implemented',
+      nextSteps: [
+        'Add last-verified timestamps for auth posture checks once the gateway exposes stable verification events.',
+        'Add exportable operator checklist text for manual token rotation and post-rotation verification.',
+      ],
     },
     {
       id: 'change-audit-log',
       title: 'Change Audit Log',
       summary: 'Track dashboard-triggered task edits, session setting changes, sends, and safe write metadata without logging bodies or secrets.',
       status: 'implemented',
+      nextSteps: [
+        'Add before/after redacted diffs for known-safe scalar fields such as enabled flags and labels.',
+        'Persist audit events outside process memory when Clawpoint grows a production storage layer.',
+      ],
     },
     {
       id: 'automation-inspector',
       title: 'Cron / Automation Inspector',
       summary: 'Show cron jobs, schedules, next/last run state, failures, and guarded enable/disable/run-now controls.',
       status: 'implemented',
+      nextSteps: [
+        'Add a job detail drawer with recent run history once the cron API exposes bounded run metadata safely.',
+        'Add dry-run preview copy for run-now actions before execution.',
+      ],
     },
     {
       id: 'danger-zone',
       title: 'Danger Zone',
       summary: 'Guarded diagnostics export, volatile-state clearing, and Clawpoint dev restart with blast-radius copy and audit logging.',
       status: 'implemented',
+      nextSteps: [
+        'Keep gateway restart/reload and config writes unavailable until role-aware auth and stronger deployment boundaries exist.',
+        'Add downloadable diagnostics bundles only after payload redaction is centralized and tested.',
+      ],
     },
   ]
 }

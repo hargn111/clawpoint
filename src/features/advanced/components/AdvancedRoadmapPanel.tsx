@@ -9,8 +9,8 @@ export function AdvancedRoadmapPanel() {
       <div className="panel-header">
         <div>
           <p className="eyebrow">Advanced roadmap</p>
-          <h3>Next six operator-console additions</h3>
-          <p className="panel-copy">Tracked here so the remaining Advanced work stays visible after Model Profiles and Effective Config.</p>
+          <h3>Operator-console next steps</h3>
+          <p className="panel-copy">Tracks what shipped, what is partial, and the concrete follow-up work for each Advanced surface.</p>
         </div>
         <div className="freshness-stack">
           <span className="badge badge-waiting">next</span>
@@ -29,6 +29,12 @@ export function AdvancedRoadmapPanel() {
             </div>
             <strong>{item.title}</strong>
             <p className="detail-copy">{item.summary}</p>
+            {item.blockedBy ? <p className="detail-copy warning-copy">Blocked by: {item.blockedBy}</p> : null}
+            <ul className="roadmap-next-steps">
+              {item.nextSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ul>
           </article>
         ))}
       </div>

@@ -217,12 +217,15 @@ test('buildModelProfiles falls back to runtime model options when config is unre
   assert.equal(profiles.items.find((profile) => profile.id === 'careful').model, 'openai-codex/gpt-5.5')
 })
 
-test('advancedRoadmapItems tracks the remaining six advanced implementations', () => {
+test('advancedRoadmapItems tracks advanced implementation status and next steps', () => {
   const items = advancedRoadmapItems()
   assert.equal(items.length, 6)
   assert.equal(items[0].title, 'MCP / Tool Inventory')
   assert.equal(items[0].status, 'implemented')
+  assert.ok(items[0].nextSteps.length >= 1)
   assert.equal(items[1].status, 'partial')
+  assert.match(items[1].blockedBy, /toolsAllow/)
+  assert.ok(items[1].nextSteps.some((step) => step.includes('sessions.patch')))
   assert.equal(items[2].status, 'implemented')
   assert.equal(items[3].status, 'implemented')
   assert.equal(items[4].status, 'implemented')
