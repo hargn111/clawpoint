@@ -15,6 +15,8 @@ import {
   buildChangeAuditLog,
   buildModelProfiles,
   buildPermissionsHardeningSummary,
+  buildSessionHistoryDetail,
+  buildSessionHistoryList,
   buildSessionPermissionSummary,
   buildToolInventory,
 } from './server/advanced-data.mjs'
@@ -224,13 +226,47 @@ async function loadSessionsFromStore() {
   return Object.entries(parsed).map(([key, value]) => ({ key, ...value }))
 }
 
-async function loadSessionsFromGateway() {
+async function loadSessionsFromGateway(params = {}) {
   if (!GATEWAY_TOKEN) {
     return loadSessionsFromStore()
   }
 
-  const parsed = await gatewayCall('sessions.list', {})
+  const parsed = await gatewayCall('sessions.list', params)
   return normalizeSessionsFromGateway(parsed)
+}
+
+function sessionTranscriptPath(session) {
+  const directPath = typeof session?.sessionFile === 'string' ? session.sessionFile : ''
+  const sessionDir = path.dirname(SESSIONS_PATH)
+  const candidates = [
+    directPath,
+    session?.sessionId ? path.join(sessionDir, `${session.sessionId}.jsonl`) : '',
+    session?.id ? path.join(sessionDir, `${session.id}.jsonl`) : '',
+  ].filter(Boolean)
+
+  return candidates.find((candidate) => {
+    const normalized = path.normalize(candidate)
+    return normalized.startsWith(sessionDir) && existsSync(normalized)
+  })
+}
+
+async function readSessionMessagesFromJsonl(session, limit = 200) {
+  const filePath = sessionTranscriptPath(session)
+  if (!filePath) return []
+  const raw = await readFile(filePath, 'utf8')
+  const messages = []
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line.trim()) continue
+    try {
+      const event = JSON.parse(line)
+      if (event?.type === 'message' && event.message) {
+        messages.push({ ...event.message, timestamp: event.message.timestamp ?? event.timestamp })
+      }
+    } catch {
+      // Ignore malformed historical lines; this is a friendly viewer, not a raw log validator.
+    }
+  }
+  return messages.slice(-Math.max(1, limit))
 }
 
 async function loadSessionModelOptions() {
@@ -328,6 +364,47 @@ async function advancedSessionPermissions(sessionKey = '') {
     inventory,
     patchSupportsToolsAllow: false,
   })
+}
+
+async function advancedSessionHistoryList() {
+  const sessions = await loadSessionsFromGateway({ limit: 100, includeGlobal: true, includeUnknown: true, includeDerivedTitles: true }).catch(() => [])
+  const keys = sessions.map((session) => session.key).filter(Boolean).slice(0, 64)
+  let previews = []
+  if (keys.length && GATEWAY_TOKEN) {
+    previews = (await gatewayCall('sessions.preview', { keys, limit: 4, maxChars: 220 }).catch(() => ({ previews: [] })))?.previews ?? []
+  }
+  if (!previews.length) {
+    previews = await Promise.all(sessions.slice(0, 64).map(async (session) => {
+      const messages = await readSessionMessagesFromJsonl(session, 4).catch(() => [])
+      return {
+        key: session.key,
+        status: messages.length ? 'ok' : 'missing',
+        items: messages.map((message) => {
+          const role = message.role || 'event'
+          const text = role === 'toolResult'
+            ? 'Tool result hidden in friendly viewer.'
+            : String(message.content?.find?.((entry) => entry?.type === 'text')?.text || '').slice(0, 220)
+          return { role, text: text || '[non-text message]' }
+        }),
+      }
+    }))
+  }
+  return buildSessionHistoryList({ sessions, previews })
+}
+
+async function advancedSessionHistoryDetail(sessionKey = '') {
+  if (!sessionKey) {
+    const error = new Error('Session key is required.')
+    error.statusCode = 400
+    throw error
+  }
+  const [sessions, payload] = await Promise.all([
+    loadSessionsFromGateway({ limit: 100, includeGlobal: true, includeUnknown: true, includeDerivedTitles: true }).catch(() => []),
+    gatewayCall('sessions.get', { key: sessionKey, limit: 200 }).catch(() => ({ messages: [] })),
+  ])
+  const session = sessions.find((item) => item.key === sessionKey)
+  const messages = payload?.messages?.length ? payload.messages : await readSessionMessagesFromJsonl(session, 200).catch(() => [])
+  return buildSessionHistoryDetail({ key: sessionKey, session, messages })
 }
 
 async function advancedRoadmap() {
@@ -899,6 +976,16 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && url.pathname === '/api/advanced/session-permissions') {
       sendJson(res, 200, await advancedSessionPermissions(url.searchParams.get('sessionKey') || ''))
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/session-history') {
+      sendJson(res, 200, await advancedSessionHistoryList())
+      return
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/advanced/session-history/detail') {
+      sendJson(res, 200, await advancedSessionHistoryDetail(url.searchParams.get('sessionKey') || ''))
       return
     }
 

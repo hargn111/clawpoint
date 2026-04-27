@@ -7,6 +7,7 @@ import { ChangeAuditLogPanel } from '../features/advanced/components/ChangeAudit
 import { DangerZonePanel } from '../features/advanced/components/DangerZonePanel'
 import { EffectiveConfigPanel } from '../features/advanced/components/EffectiveConfigPanel'
 import { ModelProfilesPanel } from '../features/advanced/components/ModelProfilesPanel'
+import { SessionHistoryPanel } from '../features/advanced/components/SessionHistoryPanel'
 import { SessionPermissionsPanel } from '../features/advanced/components/SessionPermissionsPanel'
 import { ToolInventoryPanel } from '../features/advanced/components/ToolInventoryPanel'
 import { GatewayHealthCard } from '../features/health/components/GatewayHealthCard'
@@ -89,6 +90,16 @@ export function App() {
     }
 
     orderedTabs.push(
+      {
+        id: 'session-history',
+        label: 'Session History',
+        group: 'Advanced',
+        icon: '≋',
+        eyebrow: 'Historical Session Viewer',
+        title: 'Session History',
+        description: 'Formatted historical JSONL transcripts with readable conversation flow and safe omissions.',
+        content: <SessionHistoryPanel />,
+      },
       {
         id: 'model-profiles',
         label: 'Model Profiles',

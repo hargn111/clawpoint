@@ -1,0 +1,137 @@
+import { useEffect, useMemo, useState } from 'react'
+import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
+import { useSessionHistoryDetail, useSessionHistoryList } from '../../../api/dashboard'
+
+function roleBadge(role: string) {
+  if (role === 'user') return 'badge-healthy'
+  if (role === 'assistant') return 'badge-idle'
+  if (role === 'toolResult') return 'badge-waiting'
+  return 'badge-idle'
+}
+
+function formatDate(value?: string | number | null) {
+  if (!value) return 'no timestamp'
+  const date = typeof value === 'number' ? new Date(value) : new Date(value)
+  if (Number.isNaN(date.getTime())) return 'unknown'
+  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+}
+
+export function SessionHistoryPanel() {
+  const { data, isLoading, isFetching } = useSessionHistoryList()
+  const [selectedKey, setSelectedKey] = useState('')
+  const [query, setQuery] = useState('')
+  const sessions = data?.items ?? []
+
+  useEffect(() => {
+    if (!selectedKey && sessions[0]?.key) setSelectedKey(sessions[0].key)
+  }, [selectedKey, sessions])
+
+  const visibleSessions = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return sessions
+    return sessions.filter((session) => `${session.label} ${session.key} ${session.agentId}`.toLowerCase().includes(needle))
+  }, [query, sessions])
+
+  const selectedSession = sessions.find((session) => session.key === selectedKey) ?? visibleSessions[0]
+  const detail = useSessionHistoryDetail(selectedSession?.key ?? '')
+
+  return (
+    <section className="panel-card panel-card-wide">
+      <div className="panel-header">
+        <div>
+          <p className="eyebrow">Historical session viewer</p>
+          <h3>Formatted transcript archive</h3>
+          <p className="panel-copy">Browse older OpenClaw JSONL session transcripts as a readable conversation stream instead of raw log lines.</p>
+        </div>
+        <div className="freshness-stack">
+          <span className="badge badge-healthy">implemented</span>
+          <FreshnessStamp updatedAt={data?.updatedAt} isFetching={isLoading || isFetching || detail.isFetching} />
+        </div>
+      </div>
+
+      <div className="status-strip status-strip-compact">
+        <div className="status-tile status-tile-primary">
+          <span className="metric-label">sessions</span>
+          <strong>{data?.counts.sessions ?? '...'}</strong>
+          <span>known transcripts</span>
+        </div>
+        <div className="status-tile">
+          <span className="metric-label">previewable</span>
+          <strong>{data?.counts.withPreview ?? '...'}</strong>
+          <span>with JSONL preview</span>
+        </div>
+        <div className="status-tile">
+          <span className="metric-label">messages</span>
+          <strong>{detail.data?.counts.messages ?? '...'}</strong>
+          <span>selected transcript</span>
+        </div>
+        <div className="status-tile">
+          <span className="metric-label">tools</span>
+          <strong>{detail.data?.counts.tools ?? '...'}</strong>
+          <span>summarized safely</span>
+        </div>
+      </div>
+
+      <div className="advanced-config-grid">
+        <article className="editor-card">
+          <div className="panel-subheader advanced-section-header">
+            <div>
+              <h4>Session archive</h4>
+              <p className="selector-copy">Search labels, keys, and agent ids. Select a session to load its formatted transcript.</p>
+            </div>
+            <label className="field-label field-label-inline">
+              Search
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="main, heartbeat, project…" />
+            </label>
+          </div>
+
+          {isLoading ? <div className="empty-state">Loading session archive…</div> : null}
+          <div className="selector-list tool-list-compact">
+            {visibleSessions.slice(0, 50).map((session) => (
+              <button
+                key={session.key}
+                type="button"
+                className={`selector-item tool-inventory-item ${session.key === selectedSession?.key ? 'selector-item-active' : ''}`}
+                onClick={() => setSelectedKey(session.key)}
+              >
+                <span className="selector-item-copy">
+                  <strong>{session.label}</strong>
+                  <span className="selector-copy">{session.agentId} · {formatDate(session.updatedAt)}</span>
+                  <span className="selector-copy">{session.preview.map((item) => `${item.role}: ${item.text}`).join(' · ') || session.key}</span>
+                </span>
+                <span className={`badge ${session.previewStatus === 'ok' ? 'badge-healthy' : 'badge-idle'}`}>{session.previewStatus}</span>
+              </button>
+            ))}
+          </div>
+        </article>
+
+        <article className="editor-card">
+          <div className="panel-subheader">
+            <div>
+              <h4>{detail.data?.label ?? selectedSession?.label ?? 'Transcript'}</h4>
+              <p className="selector-copy">{selectedSession?.key ?? 'Select a session'}</p>
+            </div>
+            <span className="badge badge-idle">{detail.data?.status ?? selectedSession?.status ?? 'unknown'}</span>
+          </div>
+
+          {detail.isLoading ? <div className="empty-state">Loading transcript…</div> : null}
+          <div className="session-history-thread">
+            {(detail.data?.messages ?? []).slice(-80).map((message) => (
+              <div key={message.id} className={`session-history-message session-history-${message.role}`}>
+                <div className="panel-subheader">
+                  <span className={`badge ${roleBadge(message.role)}`}>{message.toolName ?? message.role}</span>
+                  <span className="selector-copy">{formatDate(message.timestamp)}</span>
+                </div>
+                <p className="session-history-text">{message.text}</p>
+              </div>
+            ))}
+          </div>
+        </article>
+      </div>
+
+      <ul className="list compact-list">
+        {(detail.data?.notes ?? data?.notes ?? []).map((note) => <li key={note}>{note}</li>)}
+      </ul>
+    </section>
+  )
+}

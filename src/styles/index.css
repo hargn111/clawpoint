@@ -1005,6 +1005,61 @@ textarea {
   cursor: default;
 }
 
+button.tool-inventory-item {
+  border: 0.5px solid var(--color-border);
+  background: var(--color-surface-muted);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.tool-detail-drawer {
+  margin-top: 12px;
+  gap: 8px;
+}
+
+.tool-detail-drawer code {
+  overflow-wrap: anywhere;
+}
+
+.session-history-thread {
+  display: grid;
+  gap: 10px;
+  max-height: 640px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.session-history-message {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 0.5px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface-muted);
+}
+
+.session-history-user {
+  margin-left: 28px;
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface-muted));
+}
+
+.session-history-assistant {
+  margin-right: 28px;
+}
+
+.session-history-toolResult {
+  border-style: dashed;
+}
+
+.session-history-text {
+  margin: 0;
+  color: var(--color-text);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .permissions-layout {
   grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
 }

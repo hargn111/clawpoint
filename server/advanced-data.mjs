@@ -21,6 +21,14 @@ function redactDescription(value, maxLength = 180) {
   return `${collapsed.slice(0, maxLength - 1)}…`
 }
 
+function redactSessionText(value, maxLength = 1200) {
+  if (typeof value !== 'string') return ''
+  const collapsed = value.replace(/\s+/g, ' ').trim()
+  if (!collapsed) return ''
+  if (collapsed.length <= maxLength) return collapsed
+  return `${collapsed.slice(0, maxLength - 1)}…`
+}
+
 function statusFromEnabled(value) {
   if (value === false) return 'idle'
   if (value === true || value === undefined) return 'healthy'
@@ -297,6 +305,11 @@ export function buildToolInventory({ config = null, effectiveTools = null, sessi
               label: tool.label || tool.id,
               source: tool.source || group.source || 'runtime',
               description: redactDescription(tool.description || tool.rawDescription),
+              inputSchemaKeys: tool.inputSchema && typeof tool.inputSchema === 'object' ? Object.keys(tool.inputSchema).slice(0, 12) : [],
+              detail: [
+                tool.description || tool.rawDescription ? redactDescription(tool.description || tool.rawDescription, 320) : 'No description provided by the runtime.',
+                'Raw schemas, arguments, and secret-bearing config are intentionally omitted from this dashboard view.',
+              ],
             }))
           : [],
       }))
@@ -373,6 +386,92 @@ export function buildSessionPermissionSummary({ sessions = [], selectedKey = '',
         : 'This OpenClaw build does not expose toolsAllow through sessions.patch, so Clawpoint keeps this view read-only.',
       'Cron jobs and spawned agent turns can still use toolsAllow at creation time; session-level editing needs gateway support first.',
     ],
+  }
+}
+
+function textFromContent(content, role = '') {
+  if (role === 'toolResult') return 'Tool result available in raw transcript; hidden in the friendly viewer.'
+  if (typeof content === 'string') return redactSessionText(content)
+  if (!Array.isArray(content)) return ''
+  const parts = []
+  for (const entry of content) {
+    if (entry?.type === 'text' && typeof entry.text === 'string') {
+      parts.push(entry.text)
+      continue
+    }
+    if ((entry?.type === 'toolCall' || entry?.type === 'tool_call') && (entry.name || entry.toolName)) {
+      parts.push(`Tool call: ${entry.name || entry.toolName}`)
+      continue
+    }
+    if ((entry?.type === 'toolResult' || entry?.type === 'tool_result') && role !== 'assistant') {
+      parts.push('Tool result available in raw transcript; hidden in the friendly viewer.')
+      continue
+    }
+    if (entry?.type && entry.type !== 'thinking') {
+      parts.push(`[${entry.type}]`)
+    }
+  }
+  return redactSessionText(parts.join('\n\n'))
+}
+
+function summarizeHistoryMessage(message, index) {
+  const role = message?.role || 'event'
+  const text = textFromContent(message?.content, role)
+  const toolName = message?.toolName || message?.name || null
+  const timestamp = typeof message?.timestamp === 'number' ? new Date(message.timestamp).toISOString() : message?.timestamp || null
+  return {
+    id: message?.__openclaw?.id || message?.id || `message-${index}`,
+    role,
+    kind: toolName ? 'tool' : role,
+    timestamp,
+    toolName,
+    text: text || (toolName ? `Tool: ${toolName}` : '[non-text message]'),
+  }
+}
+
+export function buildSessionHistoryList({ sessions = [], previews = [], now = new Date() } = {}) {
+  const previewByKey = new Map(previews.map((preview) => [preview.key, preview]))
+  return {
+    updatedAt: now.toISOString(),
+    counts: {
+      sessions: sessions.length,
+      withPreview: previews.filter((preview) => preview.status === 'ok').length,
+    },
+    items: sessions.slice(0, 100).map((session) => {
+      const preview = previewByKey.get(session.key) || { status: 'missing', items: [] }
+      return {
+        key: session.key,
+        id: session.sessionId || session.id || session.key,
+        label: session.label || session.derivedTitle || session.title || session.key,
+        agentId: session.agentId || 'main',
+        status: session.status || session.state || 'unknown',
+        updatedAt: session.updatedAt || session.lastActivityAt || session.createdAt || null,
+        previewStatus: preview.status || 'missing',
+        preview: (preview.items || []).slice(-4),
+      }
+    }),
+    notes: [
+      'Friendly viewer reads OpenClaw session transcripts through the gateway and hides raw reasoning signatures and bulky tool results.',
+      'Reset/deleted raw files may require a future archive index before they can appear here reliably.',
+    ],
+  }
+}
+
+export function buildSessionHistoryDetail({ session = null, messages = [], key = '', now = new Date() } = {}) {
+  const normalized = messages.map((message, index) => summarizeHistoryMessage(message, index)).filter((message) => message.text)
+  return {
+    updatedAt: now.toISOString(),
+    key: key || session?.key || '',
+    label: session?.label || session?.derivedTitle || session?.title || key || 'Session transcript',
+    status: session?.status || session?.state || 'unknown',
+    counts: {
+      messages: normalized.length,
+      user: normalized.filter((message) => message.role === 'user').length,
+      assistant: normalized.filter((message) => message.role === 'assistant').length,
+      tools: normalized.filter((message) => message.role === 'toolResult' || message.kind === 'tool').length,
+    },
+    messages: normalized,
+    notes: ['This is a formatted transcript view, not a raw JSONL dump. Raw payloads, encrypted reasoning, and signatures are omitted.'],
   }
 }
 
@@ -681,13 +780,23 @@ export function buildDangerZoneSummary({ gatewayReachable = false, configLoaded 
 export function advancedRoadmapItems() {
   return [
     {
-      id: 'mcp-tool-inventory',
-      title: 'MCP / Tool Inventory',
-      summary: 'List configured MCP/tool servers, reachability, available tools, schemas, and safe test calls.',
+      id: 'session-history-viewer',
+      title: 'Historical Session / JSONL Viewer',
+      summary: 'Browse older OpenClaw session transcripts in a polished, flowing UI instead of reading raw .jsonl files.',
       status: 'implemented',
       nextSteps: [
-        'Add a schema/detail drawer for one selected tool without exposing full secret-bearing config.',
+        'Add archive indexing for reset/deleted transcript files that no longer appear in sessions.list.',
+        'Add search and date filters once transcript indexing is backed by bounded storage instead of live gateway reads.',
+      ],
+    },
+    {
+      id: 'mcp-tool-inventory',
+      title: 'MCP / Tool Inventory',
+      summary: 'List configured MCP/tool servers, reachability, available tools, safe schema summaries, and selected-tool detail.',
+      status: 'implemented',
+      nextSteps: [
         'Layer in read-only reachability probes for MCP endpoints that have safe health checks.',
+        'Add safe test-call scaffolding only after argument redaction and confirmation UX are centralized.',
       ],
     },
     {
