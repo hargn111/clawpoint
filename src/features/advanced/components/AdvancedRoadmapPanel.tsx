@@ -19,6 +19,7 @@ export function AdvancedRoadmapPanel() {
       </div>
 
       {isLoading ? <div className="empty-state">Loading roadmap…</div> : null}
+      {!isLoading && (data?.items ?? []).length === 0 ? <div className="empty-state">No roadmap items available yet.</div> : null}
 
       <div className="roadmap-grid">
         {(data?.items ?? []).map((item, index) => (

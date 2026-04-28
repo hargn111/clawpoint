@@ -232,7 +232,7 @@ test('advancedRoadmapItems tracks advanced implementation status and next steps'
   assert.equal(items[2].status, 'implemented')
   assert.ok(items[2].nextSteps.some((step) => step.includes('index')))
   assert.equal(items[3].title, 'Advanced UX Quality Pass')
-  assert.equal(items[3].status, 'next')
+  assert.equal(items[3].status, 'implemented')
   const toolInventory = items.find((item) => item.id === 'mcp-tool-inventory')
   assert.equal(toolInventory.status, 'implemented')
   const permissions = items.find((item) => item.id === 'per-session-permissions')

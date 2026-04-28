@@ -115,6 +115,7 @@ export function SessionHistoryPanel() {
             {data?.index.staleWarning ? <span className="badge badge-waiting">{data.index.staleWarning}</span> : null}
           </div>
 
+          {!isLoading && visibleSessions.length === 0 ? <div className="empty-state">No sessions match these filters.</div> : null}
           <div className="selector-list session-history-archive-list">
             {visibleSessions.slice(0, 50).map((session) => (
               <button

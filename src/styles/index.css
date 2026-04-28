@@ -1022,6 +1022,20 @@ button.tool-inventory-item {
   overflow-wrap: anywhere;
 }
 
+.selector-item:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 82%, white);
+  outline-offset: 2px;
+}
+
+.roadmap-card,
+.tool-inventory-item,
+.session-history-session-item {
+  min-width: 0;
+}
+
 
 .session-history-filter-grid {
   display: grid;
