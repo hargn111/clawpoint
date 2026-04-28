@@ -828,8 +828,39 @@ export function advancedRoadmapItems() {
       summary: 'Browse older OpenClaw session transcripts in a polished, flowing UI instead of reading raw .jsonl files.',
       status: 'implemented',
       nextSteps: [
-        'Add archive indexing for reset/deleted transcript files that no longer appear in sessions.list.',
-        'Add search and date filters once transcript indexing is backed by bounded storage instead of live gateway reads.',
+        'Keep the list/detail split optimized for scanability as transcript previews get richer.',
+        'Add keyboard navigation and persisted selected-session state after the archive API stabilizes.',
+      ],
+    },
+    {
+      id: 'session-history-reader-polish',
+      title: 'Session History Reader Polish',
+      summary: 'Make transcript selection rows readable under long labels, long keys, and multi-line previews with role-labelled snippets.',
+      status: 'implemented',
+      nextSteps: [
+        'Add a compact/comfortable density toggle for operators who prefer denser archive browsing.',
+        'Add empty/error preview affordances that explain whether a session is missing, unreadable, or still loading.',
+      ],
+    },
+    {
+      id: 'transcript-search-index',
+      title: 'Transcript Search & Archive Index',
+      summary: 'Index reset/deleted transcript files and add bounded full-text, date, agent, and channel filters across historical sessions.',
+      status: 'next',
+      nextSteps: [
+        'Design a bounded index format that stores safe summaries and file pointers without raw secret-bearing payloads.',
+        'Add search/date filters backed by the index instead of repeated live gateway reads.',
+        'Expose archive rebuild status, stale-index warnings, and a manual refresh control.',
+      ],
+    },
+    {
+      id: 'advanced-ux-quality',
+      title: 'Advanced UX Quality Pass',
+      summary: 'Harden Advanced surfaces with responsive layout checks, overflow tests, accessible focus states, and visual regression coverage.',
+      status: 'planned',
+      nextSteps: [
+        'Add component tests for long labels, long IDs, narrow panels, and missing data states.',
+        'Add Playwright smoke coverage for the Advanced tab at desktop and narrow widths.',
       ],
     },
     {
