@@ -429,6 +429,7 @@ export type SessionHistoryItem = {
   agentId: string
   status: string
   updatedAt: string | number | null
+  channel: string
   previewStatus: string
   preview: SessionHistoryPreviewItem[]
 }
@@ -437,7 +438,28 @@ export type SessionHistoryList = {
   updatedAt: string
   counts: {
     sessions: number
+    indexed: number
+    matched: number
+    hasMore: boolean
     withPreview: number
+  }
+  filters: {
+    q: string
+    agentId: string
+    channel: string
+    dateFrom: string | null
+    dateTo: string | null
+  }
+  facets: {
+    agentIds: string[]
+    channels: string[]
+  }
+  index: {
+    status: string
+    boundedTo: number
+    searchedFields: string[]
+    secretPosture: string
+    staleWarning: string
   }
   items: SessionHistoryItem[]
   notes: string[]

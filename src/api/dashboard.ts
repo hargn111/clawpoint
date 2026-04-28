@@ -142,10 +142,31 @@ export function useSessionPermissions(sessionKey = '') {
   })
 }
 
-export function useSessionHistoryList() {
+export type SessionHistoryFilters = { q?: string; agentId?: string; channel?: string; dateFrom?: string; dateTo?: string }
+
+export function localDateBoundaryIso(value = '', boundary: 'start' | 'end' = 'start') {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const [year, month, day] = value.split('-').map(Number)
+  const date = boundary === 'end'
+    ? new Date(year, month - 1, day, 23, 59, 59, 999)
+    : new Date(year, month - 1, day, 0, 0, 0, 0)
+  return date.toISOString()
+}
+
+export function useSessionHistoryList(filters: SessionHistoryFilters = {}) {
   return useQuery({
-    queryKey: ['session-history-list'],
-    queryFn: () => getJson<SessionHistoryList>('/api/advanced/session-history'),
+    queryKey: ['session-history-list', filters],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      for (const [key, value] of Object.entries(filters)) {
+        if (!value) continue
+        if (key === 'dateFrom') params.set(key, localDateBoundaryIso(value, 'start'))
+        else if (key === 'dateTo') params.set(key, localDateBoundaryIso(value, 'end'))
+        else params.set(key, value)
+      }
+      const query = params.toString()
+      return getJson<SessionHistoryList>(`/api/advanced/session-history${query ? `?${query}` : ''}`)
+    },
     refetchInterval: 60_000,
   })
 }

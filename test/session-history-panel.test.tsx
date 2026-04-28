@@ -7,13 +7,23 @@ const historyMocks = vi.hoisted(() => ({
   list: {
     data: {
       updatedAt: '2026-04-28T02:00:00Z',
-      counts: { sessions: 2, withPreview: 1 },
+      counts: { sessions: 2, indexed: 2, matched: 2, hasMore: false, withPreview: 1 },
+      filters: { q: '', agentId: '', channel: '', dateFrom: null, dateTo: null },
+      facets: { agentIds: ['main', 'main-agent-with-a-long-id'], channels: ['telegram', 'webchat'] },
+      index: {
+        status: 'ready',
+        boundedTo: 100,
+        searchedFields: ['label', 'safe preview text'],
+        secretPosture: 'safe summaries only',
+        staleWarning: '',
+      },
       items: [
         {
           key: 'agent:main:telegram:direct:very-long-session-key-that-should-wrap-instead-of-clipping-or-overflowing',
           id: 'long-session',
           label: 'A very long historical session title that should remain readable inside the archive selector item',
           agentId: 'main-agent-with-a-long-id',
+          channel: 'telegram',
           status: 'running',
           updatedAt: '2026-04-28T01:55:00Z',
           previewStatus: 'ok',
@@ -33,6 +43,7 @@ const historyMocks = vi.hoisted(() => ({
           id: 'missing-preview',
           label: 'Missing Preview Session',
           agentId: 'main',
+          channel: 'webchat',
           status: 'idle',
           updatedAt: null,
           previewStatus: 'missing',
@@ -79,6 +90,7 @@ describe('SessionHistoryPanel archive rows', () => {
     })
     expect(longSession.className).toContain('session-history-session-item')
     expect(within(longSession).getByText('ok')).not.toBeNull()
+    expect(within(longSession).getAllByText(/telegram/).length).toBeGreaterThan(0)
     expect(within(longSession).getByText(/very-long-session-key-that-should-wrap/)).not.toBeNull()
     expect(within(longSession).getByText('user')).not.toBeNull()
     expect(within(longSession).getByText(/long preview line/)).not.toBeNull()
@@ -97,6 +109,8 @@ describe('SessionHistoryPanel archive rows', () => {
     expect(css).toContain('.session-history-preview-line')
     expect(css).toContain('overflow-wrap: anywhere')
     expect(css).toContain('.session-history-session-title-row')
+    expect(css).toContain('.session-history-filter-grid')
+    expect(css).toContain('.session-history-index-status')
     expect(css).toContain('@media (max-width: 720px)')
   })
 })

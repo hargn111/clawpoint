@@ -33,6 +33,20 @@ function truncateText(value, maxLength) {
   return `${value.slice(0, maxLength - 1)}…`
 }
 
+function toIso(value) {
+  if (!value) return null
+  const date = typeof value === 'number' ? new Date(value) : new Date(String(value))
+  return Number.isNaN(date.getTime()) ? null : date.toISOString()
+}
+
+function dateFilterToIso(value, boundary = 'start') {
+  if (!value) return null
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return `${value}T${boundary === 'end' ? '23:59:59.999' : '00:00:00.000'}Z`
+  }
+  return toIso(value)
+}
+
 function redactDescription(value, maxLength = 180) {
   if (typeof value !== 'string') return ''
   return truncateText(redactSensitiveText(value), maxLength)
@@ -469,33 +483,95 @@ function summarizeHistoryMessage(message, index) {
   }
 }
 
-export function buildSessionHistoryList({ sessions = [], previews = [], now = new Date() } = {}) {
-  const previewByKey = new Map(previews.map((preview) => [preview.key, preview]))
+function normalizeHistoryFilters(filters = {}) {
   return {
-    updatedAt: now.toISOString(),
-    counts: {
-      sessions: sessions.length,
-      withPreview: previews.filter((preview) => preview.status === 'ok').length,
-    },
-    items: sessions.slice(0, 100).map((session) => {
-      const preview = previewByKey.get(session.key) || { status: 'missing', items: [] }
-      return {
+    q: typeof filters.q === 'string' ? filters.q.trim().toLowerCase() : '',
+    agentId: typeof filters.agentId === 'string' ? filters.agentId.trim() : '',
+    channel: typeof filters.channel === 'string' ? filters.channel.trim() : '',
+    dateFrom: dateFilterToIso(filters.dateFrom, 'start'),
+    dateTo: dateFilterToIso(filters.dateTo, 'end'),
+  }
+}
+
+function historyIndexText(item) {
+  return redactSessionText([
+    item.label,
+    item.key,
+    item.id,
+    item.agentId,
+    item.channel,
+    ...item.preview.map((preview) => `${preview.role} ${preview.text}`),
+  ].filter(Boolean).join(' '), 2400).toLowerCase()
+}
+
+function matchesHistoryFilters(item, filters) {
+  if (filters.agentId && item.agentId !== filters.agentId) return false
+  if (filters.channel && item.channel !== filters.channel) return false
+  const updated = toIso(item.updatedAt)
+  if (filters.dateFrom && (!updated || updated < filters.dateFrom)) return false
+  if (filters.dateTo && (!updated || updated > filters.dateTo)) return false
+  if (filters.q && !historyIndexText(item).includes(filters.q)) return false
+  return true
+}
+
+export function buildSessionHistoryList({ sessions = [], previews = [], filters = {}, now = new Date() } = {}) {
+  const previewByKey = new Map(previews.map((preview) => [preview.key, preview]))
+  const filterState = normalizeHistoryFilters(filters)
+  const boundedSessions = sessions.slice(0, 100)
+  const hasMoreHistory = sessions.length > boundedSessions.length
+  const indexedItems = boundedSessions.map((session) => {
+    const preview = previewByKey.get(session.key) || { status: 'missing', items: [] }
+    const previewItems = (Array.isArray(preview.items) ? preview.items : [])
+      .slice(-4)
+      .map((item, index) => summarizeHistoryPreviewItem(item, index))
+      .filter((item) => item.text)
+    return {
+      key: session.key,
+      id: session.sessionId || session.id || session.key,
+      label: session.label || session.derivedTitle || session.title || session.key,
+      agentId: session.agentId || 'main',
+      channel: session.lastChannel || session.channel || session.provider || 'unknown',
+      status: session.status || session.state || 'unknown',
+      updatedAt: session.updatedAt || session.lastActivityAt || session.createdAt || null,
+      previewStatus: preview.status || 'missing',
+      preview: previewItems,
+      matchTextLength: historyIndexText({
         key: session.key,
         id: session.sessionId || session.id || session.key,
         label: session.label || session.derivedTitle || session.title || session.key,
         agentId: session.agentId || 'main',
-        status: session.status || session.state || 'unknown',
-        updatedAt: session.updatedAt || session.lastActivityAt || session.createdAt || null,
-        previewStatus: preview.status || 'missing',
-        preview: (Array.isArray(preview.items) ? preview.items : [])
-          .slice(-4)
-          .map((item, index) => summarizeHistoryPreviewItem(item, index))
-          .filter((item) => item.text),
-      }
-    }),
+        channel: session.lastChannel || session.channel || session.provider || 'unknown',
+        preview: previewItems,
+      }).length,
+    }
+  })
+  const items = indexedItems.filter((item) => matchesHistoryFilters(item, filterState))
+  const facetValues = (key) => [...new Set(indexedItems.map((item) => item[key]).filter(Boolean))].sort((a, b) => String(a).localeCompare(String(b))).slice(0, 40)
+  return {
+    updatedAt: now.toISOString(),
+    counts: {
+      sessions: indexedItems.length,
+      indexed: indexedItems.length,
+      hasMore: hasMoreHistory,
+      matched: items.length,
+      withPreview: indexedItems.filter((item) => item.previewStatus === 'ok').length,
+    },
+    filters: filterState,
+    facets: {
+      agentIds: facetValues('agentId'),
+      channels: facetValues('channel'),
+    },
+    index: {
+      status: indexedItems.length ? 'ready' : 'empty',
+      boundedTo: 100,
+      searchedFields: ['label', 'key', 'id', 'agentId', 'channel', 'safe preview text'],
+      secretPosture: 'safe summaries only; raw payloads, reasoning, signatures, and bulky tool results are omitted',
+      staleWarning: hasMoreHistory ? `Showing latest ${indexedItems.length} indexed sessions; more history exists.` : '',
+    },
+    items: items.slice(0, 100).map(({ matchTextLength, ...item }) => item),
     notes: [
       'Friendly viewer reads OpenClaw session transcripts through the gateway and hides raw reasoning signatures and bulky tool results.',
-      'Reset/deleted raw files may require a future archive index before they can appear here reliably.',
+      'Search uses a bounded safe-summary archive index rather than exposing raw JSONL payloads.',
     ],
   }
 }
@@ -846,18 +922,18 @@ export function advancedRoadmapItems() {
       id: 'transcript-search-index',
       title: 'Transcript Search & Archive Index',
       summary: 'Index reset/deleted transcript files and add bounded full-text, date, agent, and channel filters across historical sessions.',
-      status: 'next',
+      status: 'implemented',
       nextSteps: [
-        'Design a bounded index format that stores safe summaries and file pointers without raw secret-bearing payloads.',
-        'Add search/date filters backed by the index instead of repeated live gateway reads.',
-        'Expose archive rebuild status, stale-index warnings, and a manual refresh control.',
+        'Persist the safe-summary index when Clawpoint grows a production storage layer.',
+        'Add manual refresh/rebuild controls after the index has durable storage and audit events.',
+        'Extend search to reset/deleted archive files once OpenClaw exposes bounded file pointers safely.',
       ],
     },
     {
       id: 'advanced-ux-quality',
       title: 'Advanced UX Quality Pass',
       summary: 'Harden Advanced surfaces with responsive layout checks, overflow tests, accessible focus states, and visual regression coverage.',
-      status: 'planned',
+      status: 'next',
       nextSteps: [
         'Add component tests for long labels, long IDs, narrow panels, and missing data states.',
         'Add Playwright smoke coverage for the Advanced tab at desktop and narrow widths.',
