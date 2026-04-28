@@ -366,8 +366,8 @@ async function advancedSessionPermissions(sessionKey = '') {
   })
 }
 
-async function advancedSessionHistoryList() {
-  const sessions = await loadSessionsFromGateway({ limit: 100, includeGlobal: true, includeUnknown: true, includeDerivedTitles: true }).catch(() => [])
+async function advancedSessionHistoryList(filters = {}) {
+  const sessions = await loadSessionsFromGateway({ limit: 101, includeGlobal: true, includeUnknown: true, includeDerivedTitles: true }).catch(() => [])
   const keys = sessions.map((session) => session.key).filter(Boolean).slice(0, 64)
   let previews = []
   if (keys.length && GATEWAY_TOKEN) {
@@ -389,7 +389,7 @@ async function advancedSessionHistoryList() {
       }
     }))
   }
-  return buildSessionHistoryList({ sessions, previews })
+  return buildSessionHistoryList({ sessions, previews, filters })
 }
 
 async function advancedSessionHistoryDetail(sessionKey = '') {
@@ -980,7 +980,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'GET' && url.pathname === '/api/advanced/session-history') {
-      sendJson(res, 200, await advancedSessionHistoryList())
+      sendJson(res, 200, await advancedSessionHistoryList({
+        q: url.searchParams.get('q') || '',
+        agentId: url.searchParams.get('agentId') || '',
+        channel: url.searchParams.get('channel') || '',
+        dateFrom: url.searchParams.get('dateFrom') || '',
+        dateTo: url.searchParams.get('dateTo') || '',
+      }))
       return
     }
 

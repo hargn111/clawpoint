@@ -229,10 +229,10 @@ test('advancedRoadmapItems tracks advanced implementation status and next steps'
   assert.equal(items[1].status, 'implemented')
   assert.ok(items[1].nextSteps.some((step) => step.includes('density')))
   assert.equal(items[2].title, 'Transcript Search & Archive Index')
-  assert.equal(items[2].status, 'next')
+  assert.equal(items[2].status, 'implemented')
   assert.ok(items[2].nextSteps.some((step) => step.includes('index')))
   assert.equal(items[3].title, 'Advanced UX Quality Pass')
-  assert.equal(items[3].status, 'planned')
+  assert.equal(items[3].status, 'next')
   const toolInventory = items.find((item) => item.id === 'mcp-tool-inventory')
   assert.equal(toolInventory.status, 'implemented')
   const permissions = items.find((item) => item.id === 'per-session-permissions')
@@ -401,6 +401,55 @@ test('buildSessionHistoryList sanitizes gateway previews and keeps fallback prev
   assert.equal(serialized.includes('tool-secret-body'), false)
   assert.equal(list.items[0].preview.at(-1).text, 'Tool/internal content available in raw transcript; hidden in the friendly viewer.')
   assert.equal(serialized.includes('[redacted-email]'), true)
+})
+
+test('buildSessionHistoryList filters the bounded safe-summary archive index', () => {
+  const list = buildSessionHistoryList({
+    filters: { q: 'roadmap', agentId: 'main', channel: 'webchat', dateFrom: '2026-04-28', dateTo: '2026-04-29' },
+    sessions: [
+      { key: 'agent:main:main', sessionId: 'main', label: 'Roadmap work', agentId: 'main', lastChannel: 'webchat', updatedAt: '2026-04-28T02:00:00Z' },
+      { key: 'agent:main:discord', sessionId: 'discord', label: 'Casual chat', agentId: 'main', lastChannel: 'discord', updatedAt: '2026-04-28T02:00:00Z' },
+      { key: 'agent:worker:old', sessionId: 'old', label: 'Roadmap old', agentId: 'worker', lastChannel: 'webchat', updatedAt: '2026-04-20T02:00:00Z' },
+    ],
+    previews: [
+      { key: 'agent:main:main', status: 'ok', items: [{ role: 'assistant', text: 'Built roadmap search without token=super-secret-value' }] },
+      { key: 'agent:main:discord', status: 'ok', items: [{ role: 'assistant', text: 'Different channel' }] },
+    ],
+  })
+
+  assert.equal(list.counts.indexed, 3)
+  assert.equal(list.counts.matched, 1)
+  assert.equal(list.items[0].key, 'agent:main:main')
+  assert.deepEqual(list.facets.channels, ['discord', 'webchat'])
+  assert.equal(list.filters.q, 'roadmap')
+  assert.equal(list.index.status, 'ready')
+  assert.equal(JSON.stringify(list).includes('super-secret-value'), false)
+})
+
+test('buildSessionHistoryList supports local-day ISO ranges that cross UTC boundaries and warns when bounded', () => {
+  const sessions = Array.from({ length: 101 }, (_, index) => ({
+    key: `agent:main:${index}`,
+    sessionId: `session-${index}`,
+    label: index === 0 ? 'Late local session' : `Session ${index}`,
+    agentId: 'main',
+    lastChannel: 'webchat',
+    updatedAt: index === 0 ? '2026-04-29T03:30:00.000Z' : '2026-04-28T12:00:00.000Z',
+  }))
+  const list = buildSessionHistoryList({
+    sessions,
+    filters: {
+      q: 'late local',
+      dateFrom: '2026-04-28T04:00:00.000Z',
+      dateTo: '2026-04-29T03:59:59.999Z',
+    },
+  })
+
+  assert.equal(list.counts.sessions, 100)
+  assert.equal(list.counts.indexed, 100)
+  assert.equal(list.counts.hasMore, true)
+  assert.equal(list.counts.matched, 1)
+  assert.equal(list.items[0].key, 'agent:main:0')
+  assert.match(list.index.staleWarning, /Showing latest 100 indexed sessions; more history exists/)
 })
 
 test('buildSessionHistoryDetail redacts session text and hides tool-result bodies', () => {

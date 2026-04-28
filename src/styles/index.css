@@ -1023,6 +1023,30 @@ button.tool-inventory-item {
 }
 
 
+.session-history-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.6fr) repeat(4, minmax(118px, 1fr));
+  gap: 10px;
+  align-items: end;
+  width: 100%;
+}
+
+.session-history-filter-grid select,
+.session-history-filter-grid input[type='date'] {
+  width: 100%;
+}
+
+.session-history-index-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0 12px;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 
 .session-history-archive-list {
   max-height: 560px;

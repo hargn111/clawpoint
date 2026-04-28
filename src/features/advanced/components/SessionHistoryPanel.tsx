@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FreshnessStamp } from '../../../components/common/FreshnessStamp'
 import { useSessionHistoryDetail, useSessionHistoryList } from '../../../api/dashboard'
 
@@ -17,21 +17,20 @@ function formatDate(value?: string | number | null) {
 }
 
 export function SessionHistoryPanel() {
-  const { data, isLoading, isFetching } = useSessionHistoryList()
-  const [selectedKey, setSelectedKey] = useState('')
   const [query, setQuery] = useState('')
+  const [agentId, setAgentId] = useState('')
+  const [channel, setChannel] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const { data, isLoading, isFetching } = useSessionHistoryList({ q: query, agentId, channel, dateFrom, dateTo })
+  const [selectedKey, setSelectedKey] = useState('')
   const sessions = data?.items ?? []
 
   useEffect(() => {
     if (!selectedKey && sessions[0]?.key) setSelectedKey(sessions[0].key)
   }, [selectedKey, sessions])
 
-  const visibleSessions = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (!needle) return sessions
-    return sessions.filter((session) => `${session.label} ${session.key} ${session.agentId}`.toLowerCase().includes(needle))
-  }, [query, sessions])
-
+  const visibleSessions = sessions
   const selectedSession = sessions.find((session) => session.key === selectedKey) ?? visibleSessions[0]
   const detail = useSessionHistoryDetail(selectedSession?.key ?? '')
 
@@ -57,8 +56,8 @@ export function SessionHistoryPanel() {
         </div>
         <div className="status-tile">
           <span className="metric-label">previewable</span>
-          <strong>{data?.counts.withPreview ?? '...'}</strong>
-          <span>with JSONL preview</span>
+          <strong>{data?.counts.matched ?? '...'}</strong>
+          <span>matching filters</span>
         </div>
         <div className="status-tile">
           <span className="metric-label">messages</span>
@@ -77,15 +76,45 @@ export function SessionHistoryPanel() {
           <div className="panel-subheader advanced-section-header">
             <div>
               <h4>Session archive</h4>
-              <p className="selector-copy">Search labels, keys, and agent ids. Select a session to load its formatted transcript.</p>
+              <p className="selector-copy">Search the bounded safe-summary index by text, date, agent, and channel. Select a result to load its formatted transcript.</p>
             </div>
-            <label className="field-label field-label-inline">
-              Search
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="main, heartbeat, project…" />
-            </label>
+            <div className="session-history-filter-grid">
+              <label className="field-label field-label-inline">
+                Search
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="main, heartbeat, project…" />
+              </label>
+              <label className="field-label field-label-inline">
+                Agent
+                <select value={agentId} onChange={(event) => setAgentId(event.target.value)}>
+                  <option value="">All agents</option>
+                  {(data?.facets.agentIds ?? []).map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field-label field-label-inline">
+                Channel
+                <select value={channel} onChange={(event) => setChannel(event.target.value)}>
+                  <option value="">All channels</option>
+                  {(data?.facets.channels ?? []).map((value) => <option key={value} value={value}>{value}</option>)}
+                </select>
+              </label>
+              <label className="field-label field-label-inline">
+                From
+                <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+              </label>
+              <label className="field-label field-label-inline">
+                To
+                <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+              </label>
+            </div>
           </div>
 
           {isLoading ? <div className="empty-state">Loading session archive…</div> : null}
+          <div className="session-history-index-status">
+            <span className="badge badge-idle">{data?.index.status ?? 'loading'}</span>
+            <span>{data?.counts.indexed ?? 0} indexed / {data?.counts.sessions ?? 0} sessions · {data?.index.secretPosture}</span>
+            {data?.index.staleWarning ? <span className="badge badge-waiting">{data.index.staleWarning}</span> : null}
+          </div>
+
           <div className="selector-list session-history-archive-list">
             {visibleSessions.slice(0, 50).map((session) => (
               <button
@@ -99,7 +128,7 @@ export function SessionHistoryPanel() {
                     <strong>{session.label}</strong>
                     <span className={`badge ${session.previewStatus === 'ok' ? 'badge-healthy' : 'badge-idle'}`}>{session.previewStatus}</span>
                   </span>
-                  <span className="selector-copy session-history-session-meta">{session.agentId} · {formatDate(session.updatedAt)}</span>
+                  <span className="selector-copy session-history-session-meta">{session.agentId} · {session.channel} · {formatDate(session.updatedAt)}</span>
                   <span className="selector-copy session-history-session-key">{session.key}</span>
                   <span className="session-history-preview-stack">
                     {session.preview.length ? session.preview.map((item, previewIndex) => (
