@@ -86,20 +86,30 @@ export function SessionHistoryPanel() {
           </div>
 
           {isLoading ? <div className="empty-state">Loading session archive…</div> : null}
-          <div className="selector-list tool-list-compact">
+          <div className="selector-list session-history-archive-list">
             {visibleSessions.slice(0, 50).map((session) => (
               <button
                 key={session.key}
                 type="button"
-                className={`selector-item tool-inventory-item ${session.key === selectedSession?.key ? 'selector-item-active' : ''}`}
+                className={`selector-item tool-inventory-item session-history-session-item ${session.key === selectedSession?.key ? 'selector-item-active' : ''}`}
                 onClick={() => setSelectedKey(session.key)}
               >
-                <span className="selector-item-copy">
-                  <strong>{session.label}</strong>
-                  <span className="selector-copy">{session.agentId} · {formatDate(session.updatedAt)}</span>
-                  <span className="selector-copy">{session.preview.map((item) => `${item.role}: ${item.text}`).join(' · ') || session.key}</span>
+                <span className="selector-item-copy session-history-session-copy">
+                  <span className="session-history-session-title-row">
+                    <strong>{session.label}</strong>
+                    <span className={`badge ${session.previewStatus === 'ok' ? 'badge-healthy' : 'badge-idle'}`}>{session.previewStatus}</span>
+                  </span>
+                  <span className="selector-copy session-history-session-meta">{session.agentId} · {formatDate(session.updatedAt)}</span>
+                  <span className="selector-copy session-history-session-key">{session.key}</span>
+                  <span className="session-history-preview-stack">
+                    {session.preview.length ? session.preview.map((item, previewIndex) => (
+                      <span key={`${item.role}-${previewIndex}`} className="session-history-preview-line">
+                        <span className="session-history-preview-role">{item.role}</span>
+                        <span>{item.text}</span>
+                      </span>
+                    )) : <span className="session-history-preview-line session-history-preview-empty">No preview available yet.</span>}
+                  </span>
                 </span>
-                <span className={`badge ${session.previewStatus === 'ok' ? 'badge-healthy' : 'badge-idle'}`}>{session.previewStatus}</span>
               </button>
             ))}
           </div>
