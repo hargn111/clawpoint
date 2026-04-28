@@ -95,6 +95,7 @@ export function ToolInventoryPanel() {
 
       {isLoading ? <div className="empty-state">Loading tool inventory…</div> : null}
 
+      {!isLoading && visibleGroups.length === 0 ? <div className="empty-state">No tool groups match the selected filter.</div> : null}
       <div className="tool-group-grid">
         {visibleGroups.map((group) => (
           <article key={group.id} className="editor-card tool-group-card">
@@ -105,6 +106,7 @@ export function ToolInventoryPanel() {
               </div>
               <span className="badge badge-idle">{group.tools.length} tools</span>
             </div>
+            {group.tools.length === 0 ? <div className="empty-state">No tools exposed by this group.</div> : null}
             <div className="selector-list tool-list-compact">
               {group.tools.slice(0, 12).map((tool) => (
                 <button

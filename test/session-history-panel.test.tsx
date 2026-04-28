@@ -102,6 +102,21 @@ describe('SessionHistoryPanel archive rows', () => {
     expect(within(missingSession).getByText('No preview available yet.')).not.toBeNull()
   })
 
+  it('renders an empty state when filters have no matching sessions', () => {
+    historyMocks.list = {
+      ...historyMocks.list,
+      data: {
+        ...historyMocks.list.data,
+        counts: { sessions: 0, indexed: 0, matched: 0, hasMore: false, withPreview: 0 },
+        items: [],
+      },
+    }
+
+    render(<SessionHistoryPanel />)
+
+    expect(screen.getByText('No sessions match these filters.')).not.toBeNull()
+  })
+
   it('keeps responsive archive-row CSS hooks for wrapping and narrow widths', () => {
     const css = readFileSync('src/styles/index.css', 'utf8')
     expect(css).toContain('.session-history-session-item')

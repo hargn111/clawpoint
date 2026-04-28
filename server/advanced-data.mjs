@@ -932,11 +932,11 @@ export function advancedRoadmapItems() {
     {
       id: 'advanced-ux-quality',
       title: 'Advanced UX Quality Pass',
-      summary: 'Harden Advanced surfaces with responsive layout checks, overflow tests, accessible focus states, and visual regression coverage.',
-      status: 'next',
+      summary: 'Harden Advanced surfaces with missing-data states, responsive overflow hooks, accessible focus states, and focused component coverage.',
+      status: 'implemented',
       nextSteps: [
-        'Add component tests for long labels, long IDs, narrow panels, and missing data states.',
-        'Add Playwright smoke coverage for the Advanced tab at desktop and narrow widths.',
+        'Add visual regression snapshots when a browser test harness is introduced.',
+        'Keep adding focused missing-data and overflow tests as each Advanced surface grows new controls.',
       ],
     },
     {
