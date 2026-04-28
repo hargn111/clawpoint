@@ -14,6 +14,8 @@ import type {
   ReminderItem,
   SessionAdminList,
   SessionCreateInput,
+  SessionHistoryDetail,
+  SessionHistoryList,
   SessionItem,
   SessionMessageInput,
   SessionModelList,
@@ -136,6 +138,23 @@ export function useSessionPermissions(sessionKey = '') {
   return useQuery({
     queryKey: ['session-permissions', sessionKey],
     queryFn: () => getJson<SessionPermissionSummary>(`/api/advanced/session-permissions?sessionKey=${encodeURIComponent(sessionKey)}`),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useSessionHistoryList() {
+  return useQuery({
+    queryKey: ['session-history-list'],
+    queryFn: () => getJson<SessionHistoryList>('/api/advanced/session-history'),
+    refetchInterval: 60_000,
+  })
+}
+
+export function useSessionHistoryDetail(sessionKey = '') {
+  return useQuery({
+    queryKey: ['session-history-detail', sessionKey],
+    queryFn: () => getJson<SessionHistoryDetail>(`/api/advanced/session-history/detail?sessionKey=${encodeURIComponent(sessionKey)}`),
+    enabled: Boolean(sessionKey),
     refetchInterval: 60_000,
   })
 }

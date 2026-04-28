@@ -346,6 +346,8 @@ export type ToolInventoryTool = {
   label: string
   source: string
   description: string
+  inputSchemaKeys: string[]
+  detail: string[]
 }
 
 export type ToolInventoryGroup = {
@@ -412,5 +414,55 @@ export type SessionPermissionSummary = {
     groupCount: number
     groupLabels: string[]
   } | null
+  notes: string[]
+}
+
+export type SessionHistoryPreviewItem = {
+  role: string
+  text: string
+}
+
+export type SessionHistoryItem = {
+  key: string
+  id: string
+  label: string
+  agentId: string
+  status: string
+  updatedAt: string | number | null
+  previewStatus: string
+  preview: SessionHistoryPreviewItem[]
+}
+
+export type SessionHistoryList = {
+  updatedAt: string
+  counts: {
+    sessions: number
+    withPreview: number
+  }
+  items: SessionHistoryItem[]
+  notes: string[]
+}
+
+export type SessionHistoryMessage = {
+  id: string
+  role: string
+  kind: string
+  timestamp: string | null
+  toolName: string | null
+  text: string
+}
+
+export type SessionHistoryDetail = {
+  updatedAt: string
+  key: string
+  label: string
+  status: string
+  counts: {
+    messages: number
+    user: number
+    assistant: number
+    tools: number
+  }
+  messages: SessionHistoryMessage[]
   notes: string[]
 }

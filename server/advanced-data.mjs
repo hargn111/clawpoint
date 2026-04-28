@@ -14,17 +14,45 @@ function boolLabel(value) {
   return 'not configured'
 }
 
+function collapseText(value) {
+  if (typeof value !== 'string') return ''
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function redactSensitiveText(value) {
+  return collapseText(value)
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted-email]')
+    .replace(/\b(Bearer)\s+[A-Za-z0-9._~+/=-]{12,}/gi, '$1 [redacted-token]')
+    .replace(/\b(api[_-]?key|access[_-]?token|auth[_-]?token|token|secret|password|authorization)\b\s*[:=]\s*["']?[^"',;\s)]+/gi, '$1=[redacted]')
+    .replace(/\b(?:sk|pk|ghp|gho|github_pat|xox[baprs])-?[A-Za-z0-9_\-]{16,}\b/g, '[redacted-token]')
+    .replace(/\b[A-Za-z0-9+/=_-]{48,}\b/g, '[redacted-token]')
+}
+
+function truncateText(value, maxLength) {
+  if (value.length <= maxLength) return value
+  return `${value.slice(0, maxLength - 1)}…`
+}
+
 function redactDescription(value, maxLength = 180) {
   if (typeof value !== 'string') return ''
-  const collapsed = value.replace(/\s+/g, ' ').trim()
-  if (collapsed.length <= maxLength) return collapsed
-  return `${collapsed.slice(0, maxLength - 1)}…`
+  return truncateText(redactSensitiveText(value), maxLength)
+}
+
+function redactSessionText(value, maxLength = 1200) {
+  if (typeof value !== 'string') return ''
+  const redacted = redactSensitiveText(value)
+  if (!redacted) return ''
+  return truncateText(redacted, maxLength)
 }
 
 function statusFromEnabled(value) {
   if (value === false) return 'idle'
   if (value === true || value === undefined) return 'healthy'
   return 'warning'
+}
+
+function isSensitiveKey(key) {
+  return /key|token|secret|password|authorization|credential/i.test(String(key))
 }
 
 function safeUrlHost(value) {
@@ -297,6 +325,11 @@ export function buildToolInventory({ config = null, effectiveTools = null, sessi
               label: tool.label || tool.id,
               source: tool.source || group.source || 'runtime',
               description: redactDescription(tool.description || tool.rawDescription),
+              inputSchemaKeys: tool.inputSchema && typeof tool.inputSchema === 'object' ? Object.keys(tool.inputSchema).filter((key) => !isSensitiveKey(key)).slice(0, 12) : [],
+              detail: [
+                tool.description || tool.rawDescription ? redactDescription(tool.description || tool.rawDescription, 320) : 'No description provided by the runtime.',
+                'Raw schemas, arguments, and secret-bearing config are intentionally omitted from this dashboard view.',
+              ],
             }))
           : [],
       }))
@@ -308,7 +341,7 @@ export function buildToolInventory({ config = null, effectiveTools = null, sessi
     enabled: entry?.enabled !== false,
     status: statusFromEnabled(entry?.enabled),
     hasConfig: Boolean(entry?.config),
-    configKeys: entry?.config && typeof entry.config === 'object' ? Object.keys(entry.config).filter((key) => !/key|token|secret|password/i.test(key)).slice(0, 8) : [],
+    configKeys: entry?.config && typeof entry.config === 'object' ? Object.keys(entry.config).filter((key) => !isSensitiveKey(key)).slice(0, 8) : [],
   }))
   const servers = Object.entries(mcpServers).map(([id, server]) => {
     const transport = server?.transport || (server?.url ? 'http' : server?.command ? 'stdio' : 'unknown')
@@ -373,6 +406,115 @@ export function buildSessionPermissionSummary({ sessions = [], selectedKey = '',
         : 'This OpenClaw build does not expose toolsAllow through sessions.patch, so Clawpoint keeps this view read-only.',
       'Cron jobs and spawned agent turns can still use toolsAllow at creation time; session-level editing needs gateway support first.',
     ],
+  }
+}
+
+function safeString(value, fallback = '') {
+  if (typeof value === 'string' && value.trim()) return value.trim()
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return fallback
+}
+
+function textFromContent(content, role = '') {
+  if (role === 'toolResult' || role === 'tool') return 'Tool/internal content available in raw transcript; hidden in the friendly viewer.'
+  if (typeof content === 'string') return redactSessionText(content)
+  if (!Array.isArray(content)) return ''
+  const parts = []
+  for (const entry of content) {
+    if (entry?.type === 'text' && typeof entry.text === 'string') {
+      parts.push(entry.text)
+      continue
+    }
+    if ((entry?.type === 'toolCall' || entry?.type === 'tool_call') && (entry.name || entry.toolName)) {
+      parts.push(`Tool call: ${entry.name || entry.toolName}`)
+      continue
+    }
+    if ((entry?.type === 'toolResult' || entry?.type === 'tool_result') && role !== 'assistant') {
+      parts.push('Tool result available in raw transcript; hidden in the friendly viewer.')
+      continue
+    }
+    if (entry?.type && entry.type !== 'thinking') {
+      parts.push(`[${entry.type}]`)
+    }
+  }
+  return redactSessionText(parts.join('\n\n'))
+}
+
+function summarizeHistoryPreviewItem(item, index) {
+  if (typeof item === 'string') {
+    return { role: 'event', text: redactSessionText(item, 220) || '[non-text preview]' }
+  }
+
+  const role = safeString(item?.role || item?.kind, 'event')
+  const text = textFromContent(item?.content ?? item?.text ?? item?.summary ?? '', role)
+  const toolName = item?.toolName || item?.name || null
+  return {
+    role,
+    text: text || (toolName ? `Tool: ${safeString(toolName, 'tool')}` : `[${safeString(item?.type, 'non-text preview')}]`),
+  }
+}
+
+function summarizeHistoryMessage(message, index) {
+  const role = message?.role || 'event'
+  const text = textFromContent(message?.content, role)
+  const toolName = message?.toolName || message?.name || null
+  const timestamp = typeof message?.timestamp === 'number' ? new Date(message.timestamp).toISOString() : message?.timestamp || null
+  return {
+    id: message?.__openclaw?.id || message?.id || `message-${index}`,
+    role,
+    kind: toolName ? 'tool' : role,
+    timestamp,
+    toolName,
+    text: text || (toolName ? `Tool: ${toolName}` : '[non-text message]'),
+  }
+}
+
+export function buildSessionHistoryList({ sessions = [], previews = [], now = new Date() } = {}) {
+  const previewByKey = new Map(previews.map((preview) => [preview.key, preview]))
+  return {
+    updatedAt: now.toISOString(),
+    counts: {
+      sessions: sessions.length,
+      withPreview: previews.filter((preview) => preview.status === 'ok').length,
+    },
+    items: sessions.slice(0, 100).map((session) => {
+      const preview = previewByKey.get(session.key) || { status: 'missing', items: [] }
+      return {
+        key: session.key,
+        id: session.sessionId || session.id || session.key,
+        label: session.label || session.derivedTitle || session.title || session.key,
+        agentId: session.agentId || 'main',
+        status: session.status || session.state || 'unknown',
+        updatedAt: session.updatedAt || session.lastActivityAt || session.createdAt || null,
+        previewStatus: preview.status || 'missing',
+        preview: (Array.isArray(preview.items) ? preview.items : [])
+          .slice(-4)
+          .map((item, index) => summarizeHistoryPreviewItem(item, index))
+          .filter((item) => item.text),
+      }
+    }),
+    notes: [
+      'Friendly viewer reads OpenClaw session transcripts through the gateway and hides raw reasoning signatures and bulky tool results.',
+      'Reset/deleted raw files may require a future archive index before they can appear here reliably.',
+    ],
+  }
+}
+
+export function buildSessionHistoryDetail({ session = null, messages = [], key = '', now = new Date() } = {}) {
+  const normalized = messages.map((message, index) => summarizeHistoryMessage(message, index)).filter((message) => message.text)
+  return {
+    updatedAt: now.toISOString(),
+    key: key || session?.key || '',
+    label: session?.label || session?.derivedTitle || session?.title || key || 'Session transcript',
+    status: session?.status || session?.state || 'unknown',
+    counts: {
+      messages: normalized.length,
+      user: normalized.filter((message) => message.role === 'user').length,
+      assistant: normalized.filter((message) => message.role === 'assistant').length,
+      tools: normalized.filter((message) => message.role === 'toolResult' || message.kind === 'tool').length,
+    },
+    messages: normalized,
+    notes: ['This is a formatted transcript view, not a raw JSONL dump. Raw payloads, encrypted reasoning, and signatures are omitted.'],
   }
 }
 
@@ -681,13 +823,23 @@ export function buildDangerZoneSummary({ gatewayReachable = false, configLoaded 
 export function advancedRoadmapItems() {
   return [
     {
-      id: 'mcp-tool-inventory',
-      title: 'MCP / Tool Inventory',
-      summary: 'List configured MCP/tool servers, reachability, available tools, schemas, and safe test calls.',
+      id: 'session-history-viewer',
+      title: 'Historical Session / JSONL Viewer',
+      summary: 'Browse older OpenClaw session transcripts in a polished, flowing UI instead of reading raw .jsonl files.',
       status: 'implemented',
       nextSteps: [
-        'Add a schema/detail drawer for one selected tool without exposing full secret-bearing config.',
+        'Add archive indexing for reset/deleted transcript files that no longer appear in sessions.list.',
+        'Add search and date filters once transcript indexing is backed by bounded storage instead of live gateway reads.',
+      ],
+    },
+    {
+      id: 'mcp-tool-inventory',
+      title: 'MCP / Tool Inventory',
+      summary: 'List configured MCP/tool servers, reachability, available tools, safe schema summaries, and selected-tool detail.',
+      status: 'implemented',
+      nextSteps: [
         'Layer in read-only reachability probes for MCP endpoints that have safe health checks.',
+        'Add safe test-call scaffolding only after argument redaction and confirmation UX are centralized.',
       ],
     },
     {

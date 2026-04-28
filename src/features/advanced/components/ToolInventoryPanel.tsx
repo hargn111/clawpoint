@@ -11,11 +11,16 @@ function badgeClass(status?: string) {
 export function ToolInventoryPanel() {
   const { data, isLoading, isFetching } = useToolInventory()
   const [groupFilter, setGroupFilter] = useState('all')
+  const [selectedToolId, setSelectedToolId] = useState('')
   const groups = data?.groups ?? []
   const visibleGroups = useMemo(
     () => (groupFilter === 'all' ? groups : groups.filter((group) => group.id === groupFilter)),
     [groupFilter, groups],
   )
+  const selectedTool = useMemo(() => {
+    const tools = groups.flatMap((group) => group.tools.map((tool) => ({ ...tool, groupLabel: group.label })))
+    return tools.find((tool) => tool.id === selectedToolId) ?? tools[0]
+  }, [groups, selectedToolId])
 
   return (
     <section className="panel-card panel-card-wide">
@@ -102,13 +107,18 @@ export function ToolInventoryPanel() {
             </div>
             <div className="selector-list tool-list-compact">
               {group.tools.slice(0, 12).map((tool) => (
-                <div key={tool.id} className="selector-item tool-inventory-item">
+                <button
+                  key={tool.id}
+                  type="button"
+                  className={`selector-item tool-inventory-item ${selectedTool?.id === tool.id ? 'selector-item-active' : ''}`}
+                  onClick={() => setSelectedToolId(tool.id)}
+                >
                   <span className="selector-item-copy">
                     <strong>{tool.label}</strong>
                     <span className="selector-copy">{tool.id}</span>
                     {tool.description ? <span className="selector-copy">{tool.description}</span> : null}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
             {group.tools.length > 12 ? <p className="selector-copy">+{group.tools.length - 12} more tools in this group.</p> : null}
@@ -117,6 +127,27 @@ export function ToolInventoryPanel() {
       </div>
 
       <div className="advanced-config-grid">
+        <article className="editor-card">
+          <div className="panel-subheader">
+            <div>
+              <h4>Selected tool detail</h4>
+              <p className="selector-copy">Schema-safe drawer for the next inventory wave.</p>
+            </div>
+            <span className="badge badge-idle">{selectedTool?.groupLabel ?? 'runtime'}</span>
+          </div>
+          {selectedTool ? (
+            <div className="detail-card tool-detail-drawer">
+              <span className="metric-label">{selectedTool.source}</span>
+              <strong>{selectedTool.label}</strong>
+              <code>{selectedTool.id}</code>
+              <ul className="list compact-list">
+                {selectedTool.detail.map((line) => <li key={line}>{line}</li>)}
+              </ul>
+              <p className="selector-copy">Schema keys: {selectedTool.inputSchemaKeys.length ? selectedTool.inputSchemaKeys.join(', ') : 'none exposed'}</p>
+            </div>
+          ) : <div className="empty-state">No tool selected.</div>}
+        </article>
+
         <article className="editor-card">
           <div className="panel-subheader">
             <h4>Plugins</h4>
