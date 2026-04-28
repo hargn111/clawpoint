@@ -19,6 +19,8 @@ import {
   buildEffectiveConfigSummary,
   buildModelProfiles,
   buildPermissionsHardeningSummary,
+  buildSessionHistoryDetail,
+  buildSessionHistoryList,
   buildSessionPermissionSummary,
   buildToolInventory,
 } from '../server/advanced-data.mjs'
@@ -334,6 +336,84 @@ test('buildToolInventory redacts secret-like plugin config and summarizes effect
   assert.equal(inventory.plugins.find((plugin) => plugin.id === 'google').configKeys.includes('apiKey'), false)
   assert.equal(inventory.plugins.find((plugin) => plugin.id === 'google').configKeys.includes('project'), true)
   assert.equal(inventory.mcpServers[0].urlHost, 'example.com')
+})
+
+
+test('buildToolInventory redacts sensitive text from tool details and schema key summaries', () => {
+  const inventory = buildToolInventory({
+    effectiveTools: {
+      groups: [
+        {
+          id: 'runtime',
+          tools: [
+            {
+              id: 'secret_tool',
+              label: 'Secret Tool',
+              rawDescription: 'Call me at human@example.com with token=sk-live-abcdefghijklmnopqrstuvwxyz123456.',
+              inputSchema: { token: { type: 'string' }, safeId: { type: 'string' } },
+            },
+          ],
+        },
+      ],
+    },
+  })
+
+  const serialized = JSON.stringify(inventory)
+  assert.equal(serialized.includes('human@example.com'), false)
+  assert.equal(serialized.includes('sk-live-abcdefghijklmnopqrstuvwxyz123456'), false)
+  assert.equal(inventory.groups[0].tools[0].description.includes('[redacted-email]'), true)
+  assert.equal(inventory.groups[0].tools[0].detail.some((line) => line.includes('[redacted-token]') || line.includes('token=[redacted]')), true)
+  assert.deepEqual(inventory.groups[0].tools[0].inputSchemaKeys, ['safeId'])
+})
+
+test('buildSessionHistoryList sanitizes gateway previews and keeps fallback preview state', () => {
+  const list = buildSessionHistoryList({
+    sessions: [
+      { key: 'agent:main:main', sessionId: 'main', label: 'Main', status: 'running' },
+      { key: 'agent:main:other', sessionId: 'other', status: 'idle' },
+    ],
+    previews: [
+      {
+        key: 'agent:main:main',
+        status: 'ok',
+        items: [
+          { role: 'user', text: 'email human@example.com token=secret-token-value' },
+          { role: 'toolResult', content: 'raw command output with password=hunter2' },
+          { role: 'tool', text: 'raw internal preview with token=tool-secret-body' },
+        ],
+      },
+    ],
+  })
+
+  assert.equal(list.counts.withPreview, 1)
+  assert.equal(list.items[0].previewStatus, 'ok')
+  assert.equal(list.items[1].previewStatus, 'missing')
+  assert.equal(list.items[1].preview.length, 0)
+  const serialized = JSON.stringify(list)
+  assert.equal(serialized.includes('human@example.com'), false)
+  assert.equal(serialized.includes('secret-token-value'), false)
+  assert.equal(serialized.includes('hunter2'), false)
+  assert.equal(serialized.includes('tool-secret-body'), false)
+  assert.equal(list.items[0].preview.at(-1).text, 'Tool/internal content available in raw transcript; hidden in the friendly viewer.')
+  assert.equal(serialized.includes('[redacted-email]'), true)
+})
+
+test('buildSessionHistoryDetail redacts session text and hides tool-result bodies', () => {
+  const detail = buildSessionHistoryDetail({
+    key: 'agent:main:main',
+    messages: [
+      { role: 'user', content: 'contact human@example.com and use apiKey=abcdef1234567890' },
+      { role: 'toolResult', content: 'payload password=hunter2' },
+      { role: 'assistant', content: [{ type: 'toolCall', name: 'exec' }] },
+    ],
+  })
+
+  const serialized = JSON.stringify(detail)
+  assert.equal(serialized.includes('human@example.com'), false)
+  assert.equal(serialized.includes('abcdef1234567890'), false)
+  assert.equal(serialized.includes('hunter2'), false)
+  assert.equal(detail.messages[1].text, 'Tool/internal content available in raw transcript; hidden in the friendly viewer.')
+  assert.equal(detail.counts.messages, 3)
 })
 
 test('buildSessionPermissionSummary stays read-only when sessions.patch lacks toolsAllow', () => {

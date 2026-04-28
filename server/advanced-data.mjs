@@ -14,25 +14,45 @@ function boolLabel(value) {
   return 'not configured'
 }
 
+function collapseText(value) {
+  if (typeof value !== 'string') return ''
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function redactSensitiveText(value) {
+  return collapseText(value)
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[redacted-email]')
+    .replace(/\b(Bearer)\s+[A-Za-z0-9._~+/=-]{12,}/gi, '$1 [redacted-token]')
+    .replace(/\b(api[_-]?key|access[_-]?token|auth[_-]?token|token|secret|password|authorization)\b\s*[:=]\s*["']?[^"',;\s)]+/gi, '$1=[redacted]')
+    .replace(/\b(?:sk|pk|ghp|gho|github_pat|xox[baprs])-?[A-Za-z0-9_\-]{16,}\b/g, '[redacted-token]')
+    .replace(/\b[A-Za-z0-9+/=_-]{48,}\b/g, '[redacted-token]')
+}
+
+function truncateText(value, maxLength) {
+  if (value.length <= maxLength) return value
+  return `${value.slice(0, maxLength - 1)}…`
+}
+
 function redactDescription(value, maxLength = 180) {
   if (typeof value !== 'string') return ''
-  const collapsed = value.replace(/\s+/g, ' ').trim()
-  if (collapsed.length <= maxLength) return collapsed
-  return `${collapsed.slice(0, maxLength - 1)}…`
+  return truncateText(redactSensitiveText(value), maxLength)
 }
 
 function redactSessionText(value, maxLength = 1200) {
   if (typeof value !== 'string') return ''
-  const collapsed = value.replace(/\s+/g, ' ').trim()
-  if (!collapsed) return ''
-  if (collapsed.length <= maxLength) return collapsed
-  return `${collapsed.slice(0, maxLength - 1)}…`
+  const redacted = redactSensitiveText(value)
+  if (!redacted) return ''
+  return truncateText(redacted, maxLength)
 }
 
 function statusFromEnabled(value) {
   if (value === false) return 'idle'
   if (value === true || value === undefined) return 'healthy'
   return 'warning'
+}
+
+function isSensitiveKey(key) {
+  return /key|token|secret|password|authorization|credential/i.test(String(key))
 }
 
 function safeUrlHost(value) {
@@ -305,7 +325,7 @@ export function buildToolInventory({ config = null, effectiveTools = null, sessi
               label: tool.label || tool.id,
               source: tool.source || group.source || 'runtime',
               description: redactDescription(tool.description || tool.rawDescription),
-              inputSchemaKeys: tool.inputSchema && typeof tool.inputSchema === 'object' ? Object.keys(tool.inputSchema).slice(0, 12) : [],
+              inputSchemaKeys: tool.inputSchema && typeof tool.inputSchema === 'object' ? Object.keys(tool.inputSchema).filter((key) => !isSensitiveKey(key)).slice(0, 12) : [],
               detail: [
                 tool.description || tool.rawDescription ? redactDescription(tool.description || tool.rawDescription, 320) : 'No description provided by the runtime.',
                 'Raw schemas, arguments, and secret-bearing config are intentionally omitted from this dashboard view.',
@@ -321,7 +341,7 @@ export function buildToolInventory({ config = null, effectiveTools = null, sessi
     enabled: entry?.enabled !== false,
     status: statusFromEnabled(entry?.enabled),
     hasConfig: Boolean(entry?.config),
-    configKeys: entry?.config && typeof entry.config === 'object' ? Object.keys(entry.config).filter((key) => !/key|token|secret|password/i.test(key)).slice(0, 8) : [],
+    configKeys: entry?.config && typeof entry.config === 'object' ? Object.keys(entry.config).filter((key) => !isSensitiveKey(key)).slice(0, 8) : [],
   }))
   const servers = Object.entries(mcpServers).map(([id, server]) => {
     const transport = server?.transport || (server?.url ? 'http' : server?.command ? 'stdio' : 'unknown')
@@ -389,8 +409,14 @@ export function buildSessionPermissionSummary({ sessions = [], selectedKey = '',
   }
 }
 
+function safeString(value, fallback = '') {
+  if (typeof value === 'string' && value.trim()) return value.trim()
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return fallback
+}
+
 function textFromContent(content, role = '') {
-  if (role === 'toolResult') return 'Tool result available in raw transcript; hidden in the friendly viewer.'
+  if (role === 'toolResult' || role === 'tool') return 'Tool/internal content available in raw transcript; hidden in the friendly viewer.'
   if (typeof content === 'string') return redactSessionText(content)
   if (!Array.isArray(content)) return ''
   const parts = []
@@ -412,6 +438,20 @@ function textFromContent(content, role = '') {
     }
   }
   return redactSessionText(parts.join('\n\n'))
+}
+
+function summarizeHistoryPreviewItem(item, index) {
+  if (typeof item === 'string') {
+    return { role: 'event', text: redactSessionText(item, 220) || '[non-text preview]' }
+  }
+
+  const role = safeString(item?.role || item?.kind, 'event')
+  const text = textFromContent(item?.content ?? item?.text ?? item?.summary ?? '', role)
+  const toolName = item?.toolName || item?.name || null
+  return {
+    role,
+    text: text || (toolName ? `Tool: ${safeString(toolName, 'tool')}` : `[${safeString(item?.type, 'non-text preview')}]`),
+  }
 }
 
 function summarizeHistoryMessage(message, index) {
@@ -447,7 +487,10 @@ export function buildSessionHistoryList({ sessions = [], previews = [], now = ne
         status: session.status || session.state || 'unknown',
         updatedAt: session.updatedAt || session.lastActivityAt || session.createdAt || null,
         previewStatus: preview.status || 'missing',
-        preview: (preview.items || []).slice(-4),
+        preview: (Array.isArray(preview.items) ? preview.items : [])
+          .slice(-4)
+          .map((item, index) => summarizeHistoryPreviewItem(item, index))
+          .filter((item) => item.text),
       }
     }),
     notes: [
