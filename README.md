@@ -71,18 +71,16 @@ When Task Garden is not available:
 
 ### Tabbed workspace
 
-The product now uses a tabbed workspace so monitoring, operations, and configuration surfaces can stay separated without feeling cramped.
+The product now uses a grouped workspace so monitoring, operations, archives, configuration, safety, and planning surfaces can stay separated without turning the sidebar into one oversized catch-all bucket.
 
-Current tabs include:
+Current groups include:
 
-- Overview
-- Gateway Health
-- Sessions
-- Task Garden (when available)
-- Model Config
-- MCP Servers
-- Logs & Events
-- Permissions & Auth
+- **Monitoring** — Overview, Gateway Health, Logs & Events
+- **Operations** — Sessions and Task Garden when available
+- **Archives** — historical Session History and transcript search
+- **Config & Access** — Model Profiles, Effective Config, Tool Inventory, Session Permissions, Permissions & Auth
+- **Automation & Safety** — Automation Inspector, Change Audit Log, Danger Zone
+- **Planning** — Product Roadmap
 
 The exact shape may still evolve, but the interface should keep supporting fast switching between modes without feeling crowded.
 
@@ -110,7 +108,7 @@ The exact shape may still evolve, but the interface should keep supporting fast 
 
 Today, Clawpoint already has:
 
-- a tabbed workspace with Overview, Gateway Health, Sessions, conditional Task Garden, Model Config, MCP Servers, Logs & Events, and Permissions & Auth views
+- a grouped workspace with Monitoring, Operations, Archives, Config & Access, Automation & Safety, and Planning surfaces
 - a live overview screen
 - live session visibility plus a shared session editor for creating and updating sessions
 - Task Garden task management with a shared create/edit panel when Task Garden is available
@@ -121,23 +119,29 @@ Today, Clawpoint already has:
 
 ## Roadmap
 
-### Phase 1, structured navigation
+### Era 1, foundation already shipped
 
-- keep refining the existing tabbed workspace
-- separate overview from focused management screens more clearly
-- improve information architecture for longer daily use
+- grouped navigation for monitoring, operations, archives, config/access, automation/safety, and planning
+- live session and Task Garden management with deliberate editor surfaces
+- safe Advanced inspection for transcripts, tools, model/config state, auth posture, automation, audit logs, and guarded diagnostics
 
-### Phase 2, task and session operations
+### Era 2, personal operations layer
 
-- add session management affordances
-- add todo management when Task Garden is available
-- make operational actions feel deliberate and safe
+- configurable Personal Operations Home for daily triage
+- Unified Work Queue that joins tasks, reminders, waiting sessions, automation failures, and human-needed decisions
+- durable TaskFlow / Background Work Monitor for spawned agents, waits, retries, and completion events
 
-### Phase 3, polish and product maturity
+### Era 3, local knowledge and follow-through
 
-- improve interaction quality throughout the UI
-- refine branding and visual system
-- reduce rough edges, ambiguity, and noisy states
+- Memory & Reference Workbench for safe review, search, and promotion of local continuity material
+- Project / PR Follow-through Console for CI, code review, deployments, and post-merge ownership
+- Cross-Session Handoff Composer for deliberate instructions to sessions, agents, and channel-bound threads
+
+### Era 4, controlled writes
+
+- Config Change Pipeline with redacted diffs, validation, exact-target confirmation, restart checks, and rollback copy
+- writable per-session tool permissions after OpenClaw persists and enforces session-scoped `toolsAllow`
+- broader guarded actions only after auditability, auth boundaries, and rollback semantics are strong enough
 
 ## Scope boundaries
 
@@ -147,9 +151,9 @@ The only integration assumption worth documenting here is Task Garden for todo f
 
 ## Near-term priorities
 
-- strengthen the information architecture within the existing tabbed workspace
-- deepen session management views
-- expand task management flows on top of optional Task Garden detection
+- build the Personal Operations Home and Unified Work Queue before adding more isolated tabs
+- make background work, waits, retries, and follow-through visible without exposing private prompt bodies
+- keep Control UI parity features secondary to Clawpoint-specific local operations workflows
 - improve overall UI quality until the interface feels intentional rather than merely functional
 - keep the operational surfaces feeling fast, legible, and trustworthy during day-to-day use
 
