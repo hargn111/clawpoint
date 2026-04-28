@@ -93,7 +93,7 @@ export function App() {
       {
         id: 'session-history',
         label: 'Session History',
-        group: 'Advanced',
+        group: 'Archives',
         icon: '≋',
         eyebrow: 'Historical Session Viewer',
         title: 'Session History',
@@ -103,7 +103,7 @@ export function App() {
       {
         id: 'model-profiles',
         label: 'Model Profiles',
-        group: 'Advanced',
+        group: 'Config & Access',
         icon: '⌘',
         eyebrow: 'Model Profiles',
         title: 'Model Profiles',
@@ -117,7 +117,7 @@ export function App() {
       {
         id: 'effective-config',
         label: 'Effective Config',
-        group: 'Advanced',
+        group: 'Config & Access',
         icon: '◈',
         eyebrow: 'Effective Config',
         title: 'Effective Config',
@@ -131,7 +131,7 @@ export function App() {
       {
         id: 'mcp-servers',
         label: 'Tool Inventory',
-        group: 'Advanced',
+        group: 'Config & Access',
         icon: '⌗',
         eyebrow: 'MCP / Tool Inventory',
         title: 'MCP / Tool Inventory',
@@ -145,7 +145,7 @@ export function App() {
       {
         id: 'session-permissions',
         label: 'Session Permissions',
-        group: 'Advanced',
+        group: 'Config & Access',
         icon: '◇',
         eyebrow: 'Session Permissions',
         title: 'Session Permissions',
@@ -159,7 +159,7 @@ export function App() {
       {
         id: 'change-audit-log',
         label: 'Change Audit Log',
-        group: 'Advanced',
+        group: 'Automation & Safety',
         icon: '≣',
         eyebrow: 'Change Audit Log',
         title: 'Change Audit Log',
@@ -169,7 +169,7 @@ export function App() {
       {
         id: 'automation-inspector',
         label: 'Automation Inspector',
-        group: 'Advanced',
+        group: 'Automation & Safety',
         icon: '↻',
         eyebrow: 'Automation Inspector',
         title: 'Automation Inspector',
@@ -179,7 +179,7 @@ export function App() {
       {
         id: 'danger-zone',
         label: 'Danger Zone',
-        group: 'Advanced',
+        group: 'Automation & Safety',
         icon: '⚠',
         eyebrow: 'Danger Zone',
         title: 'Danger Zone',
@@ -199,7 +199,7 @@ export function App() {
       {
         id: 'permissions-auth',
         label: 'Permissions & Auth',
-        group: 'Advanced',
+        group: 'Config & Access',
         icon: '⚿',
         eyebrow: 'Permissions & Auth',
         title: 'Permissions & Auth',
@@ -209,11 +209,11 @@ export function App() {
       {
         id: 'advanced-roadmap',
         label: 'Roadmap',
-        group: 'Advanced',
+        group: 'Planning',
         icon: '□',
-        eyebrow: 'Advanced Roadmap',
-        title: 'Advanced Roadmap',
-        description: 'The next six Advanced implementations after profiles and effective config.',
+        eyebrow: 'Product Roadmap',
+        title: 'Product Roadmap',
+        description: 'The next Clawpoint era beyond Control UI parity and raw diagnostics.',
         content: <AdvancedRoadmapPanel />,
       },
     )

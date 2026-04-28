@@ -8,9 +8,9 @@ export function AdvancedRoadmapPanel() {
     <section className="panel-card panel-card-wide">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Advanced roadmap</p>
-          <h3>Operator-console next steps</h3>
-          <p className="panel-copy">Tracks what shipped, what is partial, and the concrete follow-up work for each Advanced surface.</p>
+          <p className="eyebrow">Product roadmap</p>
+          <h3>Next-era Clawpoint</h3>
+          <p className="panel-copy">Tracks the next useful surfaces for local operations, especially workflows that Control UI does not own or cannot easily make durable.</p>
         </div>
         <div className="freshness-stack">
           <span className="badge badge-waiting">next</span>

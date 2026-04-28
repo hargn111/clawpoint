@@ -899,6 +899,95 @@ export function buildDangerZoneSummary({ gatewayReachable = false, configLoaded 
 export function advancedRoadmapItems() {
   return [
     {
+      id: 'personal-operations-home',
+      title: 'Personal Operations Home',
+      summary: 'Turn Overview into a configurable command center that combines sessions, tasks, reminders, automation health, recent failures, and follow-up risk into one daily landing page.',
+      status: 'next',
+      nextSteps: [
+        'Add saved home sections and a preferred landing tab backed by local preferences before shared settings exist.',
+        'Add attention routing that explains why each item is surfaced and links to the exact owning tab.',
+        'Keep Overview mostly read-only so it stays fast, calm, and safe for daily use.',
+      ],
+    },
+    {
+      id: 'unified-work-queue',
+      title: 'Unified Work Queue',
+      summary: 'Create a durable queue that joins Task Garden tasks, waiting sessions, reminders, scheduled jobs, and human-needed decisions instead of scattering work across tabs.',
+      status: 'next',
+      nextSteps: [
+        'Define a normalized work-item shape with source, urgency, owner, next action, and deep link.',
+        'Start read-only with saved filters for due, blocked, waiting-on-human, automation-failed, and recently touched work.',
+        'Add reversible queue actions only after each source has audited write routes.',
+      ],
+    },
+    {
+      id: 'taskflow-background-monitor',
+      title: 'TaskFlow / Background Work Monitor',
+      summary: 'Expose detached jobs, spawned agents, child sessions, waits, retries, and completion events as a first-class operations surface rather than hiding them in chat transcripts.',
+      status: 'planned',
+      nextSteps: [
+        'Inventory current cron jobs, background task runs, sub-agent sessions, and pending review loops into one read-only timeline.',
+        'Show wait reasons, last heartbeat, child-task ownership, and next wake time without exposing private prompt bodies.',
+        'Add guarded retry/cancel/escalate actions after cancellation semantics are explicit and audited.',
+      ],
+    },
+    {
+      id: 'memory-reference-workbench',
+      title: 'Memory & Reference Workbench',
+      summary: 'Add safe local tools for reviewing daily notes, promoted memory, reference-library entries, and stale context so continuity work is visible without becoming raw file editing.',
+      status: 'planned',
+      nextSteps: [
+        'Start with read-only search and source-linked excerpts across daily memory, curated memory, and references.',
+        'Add promotion candidates with diff previews so durable memory changes are deliberate and reviewable.',
+        'Keep secrets and private identifiers out of previews by reusing the existing redaction layer.',
+      ],
+    },
+    {
+      id: 'project-followthrough-console',
+      title: 'Project / PR Follow-through Console',
+      summary: 'Track GitHub PRs, CI, Vera reviews, deployment releases, and post-merge ownership as a workflow surface that Control UI is not designed to manage.',
+      status: 'planned',
+      nextSteps: [
+        'Model active project work as cards with branch, PR, CI, review, deployment, and blocker state.',
+        'Add safe links and summaries first; require explicit confirmation for comments, pushes, merges, and public writes.',
+        'Integrate release/deploy checks for projects that already publish machine-readable status.',
+      ],
+    },
+    {
+      id: 'config-change-pipeline',
+      title: 'Config Change Pipeline',
+      summary: 'Replace read-only config inspection with a safe diff, validation, confirmation, restart, and rollback workflow for local OpenClaw and Clawpoint settings.',
+      status: 'planned',
+      nextSteps: [
+        'Centralize redacted config diffs and validation before any write route exists.',
+        'Require exact-target confirmation, audit records, and post-restart health checks for each change.',
+        'Keep broad gateway restart/reload unavailable until auth boundaries and rollback behavior are stronger.',
+      ],
+    },
+    {
+      id: 'cross-session-handoff-composer',
+      title: 'Cross-Session Handoff Composer',
+      summary: 'Provide a deliberate composer for sending instructions to existing sessions, spawned agents, or channel-bound threads with context preview and delivery safety.',
+      status: 'later',
+      nextSteps: [
+        'Show recipient identity, session state, and allowed delivery channel before send.',
+        'Add reusable handoff templates for review, debugging, deployment watch, and research tasks.',
+        'Require a preview for any message that leaves the current local dashboard context.',
+      ],
+    },
+    {
+      id: 'per-session-permissions',
+      title: 'Per-Session Tool Permissions',
+      summary: 'Read effective tools per selected session now; writable allow/deny controls wait on sessions.patch toolsAllow support.',
+      status: 'partial',
+      nextSteps: [
+        'Upstream OpenClaw: persist toolsAllow on sessions.patch and include it in sessions.list/detail responses.',
+        'Expose a tools.effective endpoint that resolves agent defaults, session overrides, payload overrides, and channel restrictions.',
+        'After upstream support lands, add Clawpoint edit controls with diff preview, audit logging, and rollback copy.',
+      ],
+      blockedBy: 'OpenClaw gateway does not yet persist or enforce session-scoped toolsAllow overrides.',
+    },
+    {
       id: 'session-history-viewer',
       title: 'Historical Session / JSONL Viewer',
       summary: 'Browse older OpenClaw session transcripts in a polished, flowing UI instead of reading raw .jsonl files.',
@@ -948,18 +1037,6 @@ export function advancedRoadmapItems() {
         'Layer in read-only reachability probes for MCP endpoints that have safe health checks.',
         'Add safe test-call scaffolding only after argument redaction and confirmation UX are centralized.',
       ],
-    },
-    {
-      id: 'per-session-permissions',
-      title: 'Per-Session Tool Permissions',
-      summary: 'Read effective tools per selected session now; writable allow/deny controls wait on sessions.patch toolsAllow support.',
-      status: 'partial',
-      nextSteps: [
-        'Upstream OpenClaw: persist toolsAllow on sessions.patch and include it in sessions.list/detail responses.',
-        'Expose a tools.effective endpoint that resolves agent defaults, session overrides, payload overrides, and channel restrictions.',
-        'After upstream support lands, add Clawpoint edit controls with diff preview, audit logging, and rollback copy.',
-      ],
-      blockedBy: 'OpenClaw gateway does not yet persist or enforce session-scoped toolsAllow overrides.',
     },
     {
       id: 'auth-hardening',
