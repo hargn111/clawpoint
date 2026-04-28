@@ -1022,6 +1022,83 @@ button.tool-inventory-item {
   overflow-wrap: anywhere;
 }
 
+
+
+.session-history-archive-list {
+  max-height: 560px;
+  align-content: start;
+}
+
+.session-history-session-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  min-height: auto;
+  padding: 12px;
+  overflow: visible;
+}
+
+.session-history-session-copy {
+  gap: 7px;
+  overflow: visible;
+}
+
+.session-history-session-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.session-history-session-title-row strong {
+  min-width: 0;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.session-history-session-meta,
+.session-history-session-key {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.session-history-session-key {
+  color: color-mix(in srgb, var(--color-muted) 82%, var(--color-text));
+}
+
+.session-history-preview-stack {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.session-history-preview-line {
+  display: grid;
+  grid-template-columns: minmax(54px, max-content) minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-surface) 76%, transparent);
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.session-history-preview-role {
+  color: var(--color-text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.session-history-preview-empty {
+  display: block;
+  color: var(--color-muted);
+  font-style: italic;
+}
+
 .session-history-thread {
   display: grid;
   gap: 10px;
@@ -1247,5 +1324,14 @@ button.tool-inventory-item {
   .selector-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .session-history-session-title-row,
+  .session-history-preview-line {
+    grid-template-columns: 1fr;
+  }
+
+  .session-history-session-title-row {
+    display: grid;
   }
 }
