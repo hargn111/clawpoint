@@ -1,5 +1,5 @@
 import http from 'node:http'
-import { readFile, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
 import { createReadStream, existsSync } from 'node:fs'
 import { execFile as execFileCallback } from 'node:child_process'
 import { spawn } from 'node:child_process'
@@ -613,7 +613,18 @@ async function saveTodos(items) {
     version: 1,
     items,
   }
-  await writeFile(TODOS_PATH, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
+  const serialized = `${JSON.stringify(payload, null, 2)}\n`
+  const dir = path.dirname(TODOS_PATH)
+  const tempPath = path.join(dir, `.${path.basename(TODOS_PATH)}.${process.pid}.${Date.now()}.tmp`)
+  await mkdir(dir, { recursive: true })
+  try {
+    await writeFile(tempPath, serialized, 'utf8')
+    await chmod(tempPath, 0o644)
+    await rename(tempPath, TODOS_PATH)
+  } catch (error) {
+    await unlink(tempPath).catch(() => {})
+    throw error
+  }
 }
 
 async function listTaskgardenTasks() {
