@@ -80,6 +80,7 @@ export function SessionManagerCard() {
   }, [items, search, stateFilter])
 
   const selected = items.find((item) => item.id === selectedId) ?? null
+  const isMainSessionSelected = selected?.key === 'agent:main:main'
   const isDraft = selectedId === NEW_SESSION_ID || (!selectedId && items.length === 0)
   const editorOpen = isDraft || Boolean(selected)
   const closeDrawer = useCallback(() => setSelectedId(''), [])
@@ -145,7 +146,7 @@ export function SessionManagerCard() {
 
   async function handleSendMessage(event: React.FormEvent) {
     event.preventDefault()
-    if (!selected || !editor.outboundMessage.trim()) return
+    if (!selected || isMainSessionSelected || !editor.outboundMessage.trim()) return
     setNotice('')
     await sendMessage.mutateAsync({
       id: selected.id,
@@ -386,9 +387,15 @@ export function SessionManagerCard() {
               />
             </label>
 
+            {!isDraft && isMainSessionSelected ? (
+              <div className="empty-state">
+                Use the normal chat input for the main Freya session. Sending to this session from the dashboard can duplicate stored transcript entries.
+              </div>
+            ) : null}
+
             {!isDraft ? (
               <div className="action-row">
-                <button className="button-primary" type="submit" disabled={sendMessage.isPending || !editor.outboundMessage.trim()}>
+                <button className="button-primary" type="submit" disabled={sendMessage.isPending || isMainSessionSelected || !editor.outboundMessage.trim()}>
                   {sendMessage.isPending ? 'Sending…' : 'Send message'}
                 </button>
               </div>

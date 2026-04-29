@@ -932,33 +932,18 @@ const server = http.createServer(async (req, res) => {
       return
     }
     if (req.method === 'POST' && url.pathname === '/api/session-admin/sessions') {
-      const body = await readJsonBody(req)
-      sendJson(res, 200, await createSession(body))
+      sendJson(res, 403, { error: 'Clawpoint session writes are disabled.' })
       return
     }
     if (req.method === 'PATCH' && url.pathname.startsWith('/api/session-admin/sessions/')) {
-      const body = await readJsonBody(req)
-      const sessionKey = body.key
-      if (!sessionKey) {
-        sendJson(res, 400, { error: 'Session key is required.' })
-        return
-      }
-      await patchSessionSettings(sessionKey, body)
-      sendJson(res, 200, { ok: true })
+      sendJson(res, 403, { error: 'Clawpoint session writes are disabled.' })
       return
     }
     if (req.method === 'POST' && url.pathname.startsWith('/api/session-admin/sessions/')) {
       const parts = url.pathname.split('/').filter(Boolean)
       const action = parts[4]
       if (action === 'message') {
-        const body = await readJsonBody(req)
-        const sessionKey = body.key
-        if (!sessionKey) {
-          sendJson(res, 400, { error: 'Session key is required.' })
-          return
-        }
-        await sendMessageToSession(sessionKey, body)
-        sendJson(res, 200, { ok: true })
+        sendJson(res, 403, { error: 'Clawpoint session writes are disabled.' })
         return
       }
     }
