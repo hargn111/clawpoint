@@ -1037,17 +1037,35 @@ select:focus-visible {
 }
 
 
+.session-history-archive-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.session-history-archive-header > div:first-child {
+  min-width: 0;
+}
+
 .session-history-filter-grid {
   display: grid;
-  grid-template-columns: minmax(180px, 1.6fr) repeat(4, minmax(118px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 132px), 1fr));
   gap: 10px;
   align-items: end;
   width: 100%;
+  min-width: 0;
+}
+
+.session-history-filter-grid .field-label:first-child {
+  grid-column: 1 / -1;
+  min-width: min(220px, 100%);
 }
 
 .session-history-filter-grid select,
+.session-history-filter-grid input,
 .session-history-filter-grid input[type='date'] {
   width: 100%;
+  min-width: 0;
 }
 
 .session-history-index-status {
@@ -1343,6 +1361,10 @@ select:focus-visible {
 }
 
 @media (max-width: 720px) {
+  .session-history-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
   .shell {
     width: 100%;
     padding: 0;
