@@ -73,7 +73,7 @@ export function SessionHistoryPanel() {
 
       <div className="advanced-config-grid">
         <article className="editor-card">
-          <div className="panel-subheader advanced-section-header">
+          <div className="panel-subheader advanced-section-header session-history-archive-header">
             <div>
               <h4>Session archive</h4>
               <p className="selector-copy">Search the bounded safe-summary index by text, date, agent, and channel. Select a result to load its formatted transcript.</p>
