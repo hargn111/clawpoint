@@ -53,6 +53,7 @@ vi.mock('../src/features/taskgarden/api/useTaskgardenTasks', () => ({
           bucket: 'planned',
           status: 'open',
           created_at: '2026-04-24T00:00:00Z',
+          note: 'Original note',
         },
       ],
     },
@@ -122,4 +123,23 @@ describe('manager refresh controls', () => {
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Task editor' })).toBeNull())
     expect(document.activeElement).toBe(trigger)
   })
+
+  it('task save includes direct note edits', async () => {
+    taskMocks.update.mockResolvedValue({
+      item: { id: 'task-1', title: 'Task One updated', bucket: 'planned', status: 'open', created_at: '2026-04-24T00:00:00Z', note: 'Edited note' },
+    })
+
+    render(<TaskgardenManagerCard />)
+
+    fireEvent.click(screen.getByRole('button', { name: /Task One/ }))
+    fireEvent.change(screen.getByLabelText('Task note'), { target: { value: 'Edited note' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save task' }))
+
+    await waitFor(() => expect(taskMocks.update).toHaveBeenCalled())
+    expect(taskMocks.update).toHaveBeenCalledWith({
+      id: 'task-1',
+      input: expect.objectContaining({ note: 'Edited note' }),
+    })
+  })
+
 })

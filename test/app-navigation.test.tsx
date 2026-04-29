@@ -18,6 +18,8 @@ vi.mock('../src/features/advanced/components/ToolInventoryPanel', () => ({ ToolI
 vi.mock('../src/features/health/components/GatewayHealthCard', () => ({ GatewayHealthCard: () => <div>Health body</div> }))
 vi.mock('../src/features/logs/components/LogsEventsPanel', () => ({ LogsEventsPanel: () => <div>Logs body</div> }))
 vi.mock('../src/features/overview/components/AttentionOverviewPanel', () => ({ AttentionOverviewPanel: () => <div>Overview body</div> }))
+vi.mock('../src/features/overview/components/PersonalOperationsHomePanel', () => ({ PersonalOperationsHomePanel: () => <div>Personal operations body</div> }))
+vi.mock('../src/features/overview/components/UnifiedWorkQueuePanel', () => ({ UnifiedWorkQueuePanel: () => <div>Unified queue body</div> }))
 vi.mock('../src/features/permissions/components/PermissionsPanel', () => ({ PermissionsPanel: () => <div>Auth body</div> }))
 vi.mock('../src/features/reminders/components/ReminderQueueCard', () => ({ ReminderQueueCard: () => <div>Reminders body</div> }))
 vi.mock('../src/features/sessions/components/SessionManagerCard', () => ({ SessionManagerCard: () => <div>Sessions manager body</div> }))

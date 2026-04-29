@@ -77,6 +77,7 @@ export type TaskgardenTaskUpdateInput = {
   bucket?: 'planned' | 'unplanned'
   status?: 'open' | 'done'
   remindIntervalHours?: number | null
+  note?: string
   appendNote?: string
 }
 

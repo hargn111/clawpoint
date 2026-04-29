@@ -13,6 +13,8 @@ import { ToolInventoryPanel } from '../features/advanced/components/ToolInventor
 import { GatewayHealthCard } from '../features/health/components/GatewayHealthCard'
 import { LogsEventsPanel } from '../features/logs/components/LogsEventsPanel'
 import { AttentionOverviewPanel } from '../features/overview/components/AttentionOverviewPanel'
+import { PersonalOperationsHomePanel } from '../features/overview/components/PersonalOperationsHomePanel'
+import { UnifiedWorkQueuePanel } from '../features/overview/components/UnifiedWorkQueuePanel'
 import { PermissionsPanel } from '../features/permissions/components/PermissionsPanel'
 import { ReminderQueueCard } from '../features/reminders/components/ReminderQueueCard'
 import { SessionManagerCard } from '../features/sessions/components/SessionManagerCard'
@@ -36,6 +38,8 @@ export function App() {
         description: 'Attention-first health, active work, reminders, and recent failures.',
         content: (
           <div className="workspace-stack">
+            <PersonalOperationsHomePanel taskgardenAvailable={taskgardenAvailable} />
+            <UnifiedWorkQueuePanel taskgardenAvailable={taskgardenAvailable} />
             <AttentionOverviewPanel />
           </div>
         ),
