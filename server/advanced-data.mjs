@@ -901,8 +901,8 @@ export function advancedRoadmapItems() {
     {
       id: 'personal-operations-home',
       title: 'Personal Operations Home',
-      summary: 'Turn Overview into a configurable command center that combines sessions, tasks, reminders, automation health, recent failures, and follow-up risk into one daily landing page.',
-      status: 'next',
+      summary: 'Turn Overview into a configurable command center with configurable local landing cards for sessions, tasks, reminders, automation health, recent failures, and follow-up risk.',
+      status: 'implemented',
       nextSteps: [
         'Add saved home sections and a preferred landing tab backed by local preferences before shared settings exist.',
         'Add attention routing that explains why each item is surfaced and links to the exact owning tab.',
@@ -912,8 +912,8 @@ export function advancedRoadmapItems() {
     {
       id: 'unified-work-queue',
       title: 'Unified Work Queue',
-      summary: 'Create a durable queue that joins Task Garden tasks, waiting sessions, reminders, scheduled jobs, and human-needed decisions instead of scattering work across tabs.',
-      status: 'next',
+      summary: 'Create a read-only queue that joins Task Garden tasks, waiting sessions, reminders, and scheduled-job failures instead of scattering work across tabs.',
+      status: 'implemented',
       nextSteps: [
         'Define a normalized work-item shape with source, urgency, owner, next action, and deep link.',
         'Start read-only with saved filters for due, blocked, waiting-on-human, automation-failed, and recently touched work.',

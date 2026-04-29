@@ -124,6 +124,7 @@ export function TaskgardenManagerCard() {
         bucket: editor.bucket,
         status: editor.status,
         remindIntervalHours: editor.reminderHours ? Number(editor.reminderHours) : null,
+        note: editor.note,
         appendNote: editor.appendNote.trim() || undefined,
       },
     })
@@ -305,13 +306,12 @@ export function TaskgardenManagerCard() {
             <details className="editor-section" open>
               <summary>Notes</summary>
             <label className="field-label">
-              {isDraft ? 'Initial note' : 'Current note'}
+              {isDraft ? 'Initial note' : 'Task note'}
               <textarea
                 value={editor.note}
                 onChange={(event) => updateEditor('note', event.target.value)}
                 rows={5}
-                placeholder={isDraft ? 'Optional context for the new task' : 'Existing notes are shown here for reference'}
-                readOnly={!isDraft}
+                placeholder={isDraft ? 'Optional context for the new task' : 'Edit the task note directly'}
               />
             </label>
 
@@ -322,7 +322,7 @@ export function TaskgardenManagerCard() {
                   value={editor.appendNote}
                   onChange={(event) => updateEditor('appendNote', event.target.value)}
                   rows={4}
-                  placeholder="Add more context without overwriting the existing note"
+                  placeholder="Optional: append extra context after the edited note"
                 />
               </label>
             ) : null}

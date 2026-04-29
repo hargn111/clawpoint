@@ -1373,3 +1373,42 @@ select:focus-visible {
     display: grid;
   }
 }
+
+.preference-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.home-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.home-action-card,
+.work-queue-item {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-action-card:hover,
+.work-queue-item:hover {
+  border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border));
+}
+
+.work-queue-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.work-queue-high {
+  border-left: 2px solid var(--color-danger);
+}
+
+.work-queue-medium {
+  border-left: 2px solid var(--color-warning);
+}

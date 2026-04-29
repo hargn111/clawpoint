@@ -676,6 +676,9 @@ async function updateTaskgardenTask(id, input) {
       current.last_reminder_at = null
     }
   }
+  if (typeof input.note === 'string') {
+    current.note = input.note.trim()
+  }
   if (typeof input.appendNote === 'string' && input.appendNote.trim()) {
     current.note = current.note ? `${current.note}\n${input.appendNote.trim()}` : input.appendNote.trim()
   }
